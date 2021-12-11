@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <!-- Be strict with warnings -->
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Use the latest version of C# available -->
+    <LangVersion>Latest</LangVersion>
+
+    <!-- Produce deterministic binaries -->
+    <Deterministic>true</Deterministic>
+
+    <!-- Enable optimized NuGet restore -->
+    <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
+
+    <!-- Enabled the built-in analyzers -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+
+    <!-- Enable nullable reference types -->
+    <Nullable>Enable</Nullable>
+
+    <!-- Enable implicit usings -->
+    <ImplicitUsings>Enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Packaging -->
+  <PropertyGroup>
+    <Authors>David Federman</Authors>
+    <Company>ZWave.NET</Company>
+    <Copyright>© ZWave.NET. All rights reserved.</Copyright>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageLicensePath>$(MSBuildThisFileDirectory)$(PackageLicenseFile)</PackageLicensePath>
+    <PackageProjectUrl>https://github.com/dfederm/ZWave.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/dfederm/ZWave.NET.git</RepositoryUrl>
+    <PackageTags>msbuild</PackageTags>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(PackageLicensePath)"
+          Pack="true"
+          PackagePath="$(PackageLicenseFile)"
+          Visible="false" />
+  </ItemGroup>
+
+  <!-- Source Link (https://github.com/dotnet/sourcelink) -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Versioning (https://github.com/dotnet/Nerdbank.GitVersioning) -->
+  <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.4.244" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
