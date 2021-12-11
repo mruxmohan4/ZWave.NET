@@ -33,7 +33,7 @@
     <PackageLicensePath>$(MSBuildThisFileDirectory)$(PackageLicenseFile)</PackageLicensePath>
     <PackageProjectUrl>https://github.com/dfederm/ZWave.NET</PackageProjectUrl>
     <RepositoryUrl>https://github.com/dfederm/ZWave.NET.git</RepositoryUrl>
-    <PackageTags>msbuild</PackageTags>
+    <PackageTags>zwave z-wave</PackageTags>
   </PropertyGroup>
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
     <None Include="$(PackageLicensePath)"
