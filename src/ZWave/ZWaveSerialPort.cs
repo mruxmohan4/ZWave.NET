@@ -1,72 +1,34 @@
 ﻿using System.Buffers;
 using System.IO.Pipelines;
-using System.IO.Ports;
+using System.Threading;
 
 namespace ZWave;
 
 public sealed class ZWaveSerialPort : IDisposable
 {
-    private readonly SerialPort _port;
+    private readonly ZWaveSerialPortStream _stream;
 
-    private PipeReader? _reader;
+    private readonly PipeReader _reader;
 
-    private Task? _readTask;
+    private readonly Task _readTask;
 
-    private CancellationTokenSource? _cancellationTokenSource;
+    private readonly CancellationTokenSource _cancellationTokenSource;
 
     private bool _disposed = false;
 
     public ZWaveSerialPort(string portName)
     {
-        _port = new SerialPort(
-            portName,
-            baudRate: 115200,
-            parity: Parity.None,
-            dataBits: 8,
-            stopBits: StopBits.One);
-    }
-
-    public bool IsConnected => _port.IsOpen;
-
-    public void Connect()
-    {
-        CheckDisposed();
-
-        if (_port.IsOpen)
-        {
-            throw new InvalidOperationException("The port is already connected");
-        }
-
-        _port.Open();
-        _port.DiscardInBuffer();
-
-        _reader = PipeReader.Create(_port.BaseStream, new StreamPipeReaderOptions(leaveOpen: true));
+        _stream = new ZWaveSerialPortStream(portName);
+        _reader = PipeReader.Create(_stream, new StreamPipeReaderOptions(leaveOpen: true));
         _cancellationTokenSource = new CancellationTokenSource();
         _readTask = Task.Run(() => ReadAsync(_reader, _cancellationTokenSource.Token));
-    }
-
-    public void Disconnect()
-    {
-        CheckDisposed();
-
-        if (!_port.IsOpen)
-        {
-            throw new InvalidOperationException("The port is not connected");
-        }
-
-        DisconnectInternal();
     }
 
     public void WriteAsync(byte[] buffer)
     {
         CheckDisposed();
 
-        if (!_port.IsOpen)
-        {
-            throw new InvalidOperationException("The port is not connected");
-        }
-
-        _port.BaseStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+        _stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -76,7 +38,9 @@ public sealed class ZWaveSerialPort : IDisposable
             return;
         }
 
-        DisconnectInternal();
+        _cancellationTokenSource.Cancel();
+        _reader.CancelPendingRead();
+        _stream.Dispose();
 
         _disposed = true;
     }
@@ -108,13 +72,6 @@ public sealed class ZWaveSerialPort : IDisposable
                 break;
             }
         }
-    }
-
-    private void DisconnectInternal()
-    {
-        _cancellationTokenSource?.Cancel();
-        _reader?.CancelPendingRead();
-        _port.Close();
     }
 
     private void CheckDisposed()
