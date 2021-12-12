@@ -1,9 +1,9 @@
 ﻿using System.Buffers;
 using System.IO.Pipelines;
-using System.Threading;
 
 namespace ZWave;
 
+// TODO: Rename this
 public sealed class ZWaveSerialPort : IDisposable
 {
     private readonly ZWaveSerialPortStream _stream;
@@ -59,8 +59,11 @@ public sealed class ZWaveSerialPort : IDisposable
                 break;
             }
 
-            // TODO: Parse buffer
-            ////_reader.AdvanceTo(buffer.Start, buffer.End);
+            // TODO: Do something with the frame
+            if (FrameParser.TryParseData(ref buffer, out Frame frame))
+            {
+                reader.AdvanceTo(buffer.Start, buffer.End);
+            }
 
             if (readResult.IsCompleted)
             {

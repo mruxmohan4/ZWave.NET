@@ -3,25 +3,27 @@
 internal static class FrameHeader
 {
     /// <summary>
-    /// The SOF (Start of Frame) denotes the start of a data frame, which contains the Serial API
-    /// command including parameters for the command in question.
+    /// Start of Frame
     /// </summary>
     public const byte SOF = 0x01;
 
     /// <summary>
-    /// The ACK frame indicates that the receiving end received a valid Data frame.
+    /// Acknowledge
     /// </summary>
     public const byte ACK = 0x06;
 
     /// <summary>
-    /// The NAK frame indicates that the receiving end received a Data frame with errors.
+    /// Negative acknowledge
     /// </summary>
     public const byte NAK = 0x15;
 
     /// <summary>
-    /// The CAN frame indicates that the receiving end discarded an otherwise valid Data frame.
-    /// The CAN frame is used to resolve race conditions, where both ends send a Data frame and
-    /// subsequently expects an ACK frame from the other end.
+    /// Cancel
     /// </summary>
     public const byte CAN = 0x18;
+
+    /// <summary>
+    /// All valid headers
+    /// </summary>
+    public static readonly byte[] ValidHeaders = new byte[] { SOF, ACK, NAK, CAN };
 }
