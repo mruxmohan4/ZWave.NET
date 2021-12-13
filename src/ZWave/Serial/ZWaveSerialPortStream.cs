@@ -1,6 +1,6 @@
 ﻿using System.IO.Ports;
 
-namespace ZWave;
+namespace ZWave.Serial;
 
 /// <summary>
 /// Provides a stream for the Z-Wave Serial port.

@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using System.IO.Pipelines;
 
-namespace ZWave;
+namespace ZWave.Serial;
 
 public sealed class ZWaveFrameListener : IDisposable
 {

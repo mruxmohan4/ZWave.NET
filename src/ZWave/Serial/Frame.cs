@@ -1,23 +1,16 @@
-﻿namespace ZWave;
+﻿namespace ZWave.Serial;
 
 public readonly struct Frame : IEquatable<Frame>
 {
-    private readonly byte[] _data;
-
-    public Frame(byte[] data)
+    public Frame(ReadOnlyMemory<byte> data)
     {
-        if (data == null)
-        {
-            throw new ArgumentNullException(nameof(data));
-        }
-
-        if (data.Length == 0)
+        if (data.IsEmpty)
         {
             throw new ArgumentException("Frame data must not be empty", nameof(data));
         }
 
         // Reuse the singletons for single-byte frames to allow the provided byte array to be GC'd.
-        switch (data[0])
+        switch (data.Span[0])
         {
             case FrameHeader.ACK:
             {
@@ -36,13 +29,13 @@ public readonly struct Frame : IEquatable<Frame>
             }
             case FrameHeader.SOF:
             {
-                _data = data;
+                Data = data;
                 Type = FrameType.Data;
                 break;
             }
             default:
             {
-                throw new ArgumentException($"Frame data had unknown frame header: {data[0]}", nameof(data));
+                throw new ArgumentException($"Frame data had unknown frame header: {data.Span[0]}", nameof(data));
             }
         }
 
@@ -50,9 +43,9 @@ public readonly struct Frame : IEquatable<Frame>
         if (Type == FrameType.Data)
         {
             // The length doesn't include the SOF or checksum, so add 2
-            if (data[1] + 2 != data.Length)
+            if (data.Span[1] + 2 != data.Length)
             {
-                throw new ArgumentException($"The data frame's length field had invalid value {data[1]} for frame data length {data.Length}", nameof(data));
+                throw new ArgumentException($"The data frame's length field had invalid value {data.Span[1]} for frame data length {data.Length}", nameof(data));
             }
         }
         else if (data.Length > 1)
@@ -64,7 +57,7 @@ public readonly struct Frame : IEquatable<Frame>
     // Used for well-known single-byte frame types
     private Frame(byte frameHeader, FrameType frameType)
     {
-        _data = new[] { frameHeader };
+        Data = new[] { frameHeader };
         Type = frameType;
     }
 
@@ -76,15 +69,17 @@ public readonly struct Frame : IEquatable<Frame>
 
     public FrameType Type { get; }
 
+    public ReadOnlyMemory<byte> Data { get; }
+
     public DataFrame ToDataFrame()
         => Type == FrameType.Data
-            ? new DataFrame(_data)
+            ? new DataFrame(Data)
             : throw new InvalidOperationException($"{Type} frames are not data frames");
 
     public override bool Equals(object? obj) => obj is Frame other && this.Equals(other);
 
     public bool Equals(Frame other)
-        => _data.AsSpan().SequenceEqual(other._data.AsSpan());
+        => Data.Span.SequenceEqual(other.Data.Span);
 
     public static bool operator ==(Frame lhs, Frame rhs) => lhs.Equals(rhs);
 
@@ -93,7 +88,7 @@ public readonly struct Frame : IEquatable<Frame>
     public override int GetHashCode()
     {
         HashCode hash = default;
-        hash.AddBytes(_data);
+        hash.AddBytes(Data.Span);
         return hash.ToHashCode();
     }
 }

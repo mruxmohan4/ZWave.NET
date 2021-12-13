@@ -1,4 +1,4 @@
-﻿namespace ZWave;
+﻿namespace ZWave.Serial;
 
 internal static class FrameHeader
 {

@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace ZWave;
+namespace ZWave.Serial;
 
 internal static class FrameParser
 {

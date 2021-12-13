@@ -1,4 +1,4 @@
-﻿namespace ZWave;
+﻿namespace ZWave.Serial;
 
 public enum FrameType
 {
