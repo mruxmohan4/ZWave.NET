@@ -1,6 +1,6 @@
 ﻿namespace ZWave;
 
-internal enum FrameType
+public enum FrameType
 {
     /// <summary>
     /// The ACK frame indicates that the receiving end received a valid Data frame.

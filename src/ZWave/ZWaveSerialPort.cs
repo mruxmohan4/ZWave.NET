@@ -59,19 +59,17 @@ public sealed class ZWaveSerialPort : IDisposable
                 break;
             }
 
-            // TODO: Do something with the frame
-            if (FrameParser.TryParseData(ref buffer, out Frame frame))
+            while (FrameParser.TryParseData(ref buffer, out Frame frame))
             {
-                reader.AdvanceTo(buffer.Start, buffer.End);
+                // TODO: Do something with the frame
             }
 
+            // Tell the PipeReader how much of the buffer has been consumed.
+            reader.AdvanceTo(buffer.Start, buffer.End);
+
+            // Stop reading if there's no more data coming.
             if (readResult.IsCompleted)
             {
-                if (!buffer.IsEmpty)
-                {
-                    throw new InvalidDataException("Incomplete message.");
-                }
-
                 break;
             }
         }

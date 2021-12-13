@@ -22,114 +22,75 @@ internal static class FrameParser
             return false;
         }
 
-        // Make a copy to avoid altering the original unless we're successful.
-        ReadOnlySequence<byte> sequenceCopy = sequence;
-
-        var reader = new SequenceReader<byte>(sequenceCopy);
+        var reader = new SequenceReader<byte>(sequence);
 
         // Skip any invalid data
-        if (!reader.TryReadToAny(out sequenceCopy, FrameHeader.ValidHeaders, advancePastDelimiter: false))
+        if (!reader.TryReadToAny(out ReadOnlySequence<byte> _, FrameHeader.ValidHeaders, advancePastDelimiter: false))
         {
             // We didn't find any valid data, so consume the entire sequence
             sequence = sequence.Slice(sequence.End);
             return false;
         }
 
+        // Consume the invalid data regardless of whether we find the frame complete later.
+        sequence = sequence.Slice(reader.Position);
+
         if (!reader.TryPeek(out byte frameHeader))
         {
-            // Considering the call above was successful, this should never happen
-            sequence = sequence.Slice(sequence.End);
-            return false;
+            throw new InvalidDataException("Could not read frame header after reading it already.");
         }
 
-        bool success;
         switch (frameHeader)
         {
             case FrameHeader.ACK:
             {
                 frame = Frame.ACK;
-                success = true;
-                break;
+                sequence = sequence.Slice(1);
+                return true;
             }
             case FrameHeader.NAK:
             {
                 frame = Frame.NAK;
-                success = true;
-                break;
+                sequence = sequence.Slice(1);
+                return true;
             }
             case FrameHeader.CAN:
             {
                 frame = Frame.CAN;
-                success = true;
-                break;
+                sequence = sequence.Slice(1);
+                return true;
             }
             case FrameHeader.SOF:
             {
-                success = TryParseDataFrame(ref reader, out frame);
-                break;
+                if (!reader.TryRead(out byte lengthByte))
+                {
+                    // Incomplete message
+                    return false;
+                }
+
+                // The length doesn't include the SOF or checksum, so read 2 extra bytes
+                int frameLength = lengthByte + 2;
+                if (reader.Remaining < frameLength)
+                {
+                    // Incomplete message
+                    return false;
+                }
+
+                var frameData = new byte[frameLength];
+                if (reader.TryCopyTo(frameData))
+                {
+                    throw new InvalidDataException($"Could not read {frameLength} bytes despite having {reader.Remaining} remaining bytes in the sequence");
+                }
+
+                // A complete data frame was read. Advance the sequence.
+                sequence = sequence.Slice(frameLength);
+                frame = new Frame(frameData);
+                return true;
             }
             default:
             {
-                // TODO
-                return true;
+                throw new InvalidDataException("Sequence is not at frame header position destire already finding it already.");
             }
         }
-
-        // Update the sequence for the caller
-        if (success)
-        {
-            sequence = sequenceCopy;
-        }
-
-        return success;
-    }
-
-    private static bool TryParseDataFrame(ref SequenceReader<byte> reader, out Frame frame)
-    {
-        // We've alread read the SOF
-        // TODO: Nope, we actually just peeked it.
-        // TODO: peek the length and read the whole message into an array at once. Can we check the length?
-
-        if (!reader.TryRead(out byte lengthByte)
-            || !reader.TryRead(out byte messageType)
-            || !reader.TryRead(out byte commandId))
-        {
-            return false;
-        }
-
-        int length = (int)lengthByte;
-
-        // Read the command parameters. There are 3 less params to account for the length byte, message type, and command id.
-        byte[] commandParameters = new byte[length - 3];
-        if (!reader.TryCopyTo(commandParameters))
-        {
-            return false;
-        }
-
-        // Validate checksum. Note that this does not count towards the length.
-        if (!reader.TryRead(out byte checksum))
-        {
-            return false;
-        }
-
-        // Validate checksum
-        byte expectedChecksum = 0xFF;
-        expectedChecksum ^= lengthByte;
-        expectedChecksum ^= messageType;
-        expectedChecksum ^= commandId;
-        for (int i = 0; i < commandParameters.Length; i++)
-        {
-            expectedChecksum ^= commandParameters[i];
-        }
-
-        if (checksum != expectedChecksum)
-        {
-            // TODO: Handle invalid checksum. Maybe move validation to the message handler
-        }
-
-        // TODO: Raise event of complete data frame
-        var dataFrame = new DataFrame(messageType, commandId, commandParameters);
-
-        return true;
     }
 }
