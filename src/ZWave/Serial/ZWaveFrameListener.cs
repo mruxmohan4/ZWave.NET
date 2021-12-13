@@ -3,32 +3,28 @@ using System.IO.Pipelines;
 
 namespace ZWave;
 
-// TODO: Rename this
-public sealed class ZWaveSerialPort : IDisposable
+public sealed class ZWaveFrameListener : IDisposable
 {
-    private readonly ZWaveSerialPortStream _stream;
+    private readonly Stream _stream;
 
     private readonly PipeReader _reader;
-
-    private readonly Task _readTask;
 
     private readonly CancellationTokenSource _cancellationTokenSource;
 
     private bool _disposed = false;
 
-    public ZWaveSerialPort(string portName)
+    public ZWaveFrameListener(Stream stream, Action<Frame> frameHandler)
     {
-        _stream = new ZWaveSerialPortStream(portName);
+        _stream = stream ?? throw new ArgumentNullException(nameof(stream));
+
+        if (frameHandler == null)
+        {
+            throw new ArgumentNullException(nameof(frameHandler));
+        }
+
         _reader = PipeReader.Create(_stream, new StreamPipeReaderOptions(leaveOpen: true));
         _cancellationTokenSource = new CancellationTokenSource();
-        _readTask = Task.Run(() => ReadAsync(_reader, _cancellationTokenSource.Token));
-    }
-
-    public void WriteAsync(byte[] buffer)
-    {
-        CheckDisposed();
-
-        _stream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+        Task.Run(() => ReadAsync(_reader, frameHandler, _cancellationTokenSource.Token));
     }
 
     public void Dispose()
@@ -40,13 +36,13 @@ public sealed class ZWaveSerialPort : IDisposable
 
         _cancellationTokenSource.Cancel();
         _reader.CancelPendingRead();
-        _stream.Dispose();
 
         _disposed = true;
     }
 
     private static async Task ReadAsync(
         PipeReader reader,
+        Action<Frame> frameHandler,
         CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -61,7 +57,9 @@ public sealed class ZWaveSerialPort : IDisposable
 
             while (FrameParser.TryParseData(ref buffer, out Frame frame))
             {
-                // TODO: Do something with the frame
+                // TODO: Should we be invoking user code directly like this?
+                // Maybe a better approach would be to use a Pipeline the caller can consume?
+                frameHandler(frame);
             }
 
             // Tell the PipeReader how much of the buffer has been consumed.
@@ -79,7 +77,7 @@ public sealed class ZWaveSerialPort : IDisposable
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(nameof(ZWaveSerialPort));
+            throw new ObjectDisposedException(nameof(ZWaveFrameListener));
         }
     }
 }
