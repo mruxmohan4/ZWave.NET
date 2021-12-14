@@ -62,7 +62,7 @@ internal static class FrameParser
             }
             case FrameHeader.SOF:
             {
-                if (!reader.TryRead(out byte lengthByte))
+                if (!reader.TryPeek(1, out byte lengthByte))
                 {
                     // Incomplete message
                     return false;
@@ -77,7 +77,7 @@ internal static class FrameParser
                 }
 
                 var frameData = new byte[frameLength];
-                if (reader.TryCopyTo(frameData))
+                if (!reader.TryCopyTo(frameData))
                 {
                     throw new InvalidDataException($"Could not read {frameLength} bytes despite having {reader.Remaining} remaining bytes in the sequence");
                 }
@@ -89,7 +89,7 @@ internal static class FrameParser
             }
             default:
             {
-                throw new InvalidDataException("Sequence is not at frame header position destire already finding it already.");
+                throw new InvalidDataException("Sequence is not at frame header position despite already finding it.");
             }
         }
     }

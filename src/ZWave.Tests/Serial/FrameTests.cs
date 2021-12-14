@@ -17,7 +17,7 @@ public class FrameTests
     [TestMethod]
     public void ConstructorEmptyData()
     {
-        Assert.ThrowsException<ArgumentException>(() => new Frame(new byte[0]));
+        Assert.ThrowsException<ArgumentException>(() => new Frame(Array.Empty<byte>()));
     }
 
     [DataTestMethod]
@@ -81,6 +81,43 @@ public class FrameTests
         Assert.ThrowsException<ArgumentException>(() => new Frame(frameData));
     }
 
+    [TestMethod]
+    public void ConstructorUnknownHeader()
+    {
+        byte[] frameData = new byte[]
+        {
+            0xDE,
+            0xAD,
+            0xBE,
+            0xEF,
+        };
+
+        Assert.ThrowsException<ArgumentException>(() => new Frame(frameData));
+    }
+
+    [TestMethod]
+    public void ToDataFrameForDataFrame()
+    {
+        byte[] frameData = new byte[]
+        {
+            FrameHeader.SOF,
+            3,                  // Length
+            DataFrameType.RES,
+            0x00,               // Command id. TODO: Use const
+            0xFC                // Checksum
+        };
+        var frame = new Frame(frameData);
+
+        var dataFrame = frame.ToDataFrame();
+        Assert.AreNotEqual(default, dataFrame);
+    }
+
+    [TestMethod]
+    public void ToDataFrameForNonDataFrame()
+    {
+        Assert.ThrowsException<InvalidOperationException>(() => Frame.ACK.ToDataFrame());
+    }
+
     [DataTestMethod]
     [DataRow(true, new[] { FrameHeader.ACK }, new[] { FrameHeader.ACK })]
     [DataRow(true, new[] { FrameHeader.NAK }, new[] { FrameHeader.NAK })]
@@ -129,5 +166,63 @@ public class FrameTests
         var frame1 = new Frame(frameData1);
         var frame2 = new Frame(frameData2);
         Assert.AreEqual(expectedAreEqual, frame1 == frame2);
+    }
+
+    [DataTestMethod]
+    [DataRow(new[] { FrameHeader.ACK })]
+    [DataRow(new[] { FrameHeader.NAK })]
+    [DataRow(new[] { FrameHeader.CAN })]
+    [DataRow(
+        new byte[]
+        {
+            FrameHeader.SOF,
+            3,                  // Length
+            DataFrameType.RES,
+            0x00,               // Command id. TODO: Use const
+            0xFC                // Checksum
+        })]
+    public void GetHashCodeConsistency(byte[] frameData)
+    {
+        var frame1 = new Frame(frameData);
+
+        var frameDataCopy = (byte[])frameData.Clone();
+        var frame2 = new Frame(frameDataCopy);
+
+        Assert.AreEqual(frame1.GetHashCode(), frame2.GetHashCode());
+    }
+
+    [TestMethod]
+    public void GetHashCodeUniqueness()
+    {
+        var hashCodes = new HashSet<int>();
+        int hashCodesAdded = 0;
+
+        void AddHashCode(Frame frame)
+        {
+            hashCodes.Add(frame.GetHashCode());
+            hashCodesAdded++;
+        }
+
+        AddHashCode(Frame.ACK);
+        AddHashCode(Frame.NAK);
+        AddHashCode(Frame.CAN);
+        AddHashCode(new Frame(new byte[]
+        {
+            FrameHeader.SOF,
+            3,                  // Length
+            DataFrameType.RES,
+            0x00,               // Command id. TODO: Use const
+            0xFC                // Checksum
+        }));
+        AddHashCode(new Frame(new byte[]
+        {
+            FrameHeader.SOF,
+            3,                  // Length
+            DataFrameType.RES,
+            0x01,               // Command id. TODO: Use const
+            0xFC                // Checksum
+        }));
+
+        Assert.AreEqual(hashCodesAdded, hashCodes.Count);
     }
 }
