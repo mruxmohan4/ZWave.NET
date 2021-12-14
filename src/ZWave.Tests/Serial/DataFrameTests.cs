@@ -1,4 +1,6 @@
-﻿namespace ZWave.Serial.Tests;
+﻿using ZWave.Serial;
+
+namespace ZWave.Tests.Serial;
 
 [TestClass]
 public class DataFrameTests

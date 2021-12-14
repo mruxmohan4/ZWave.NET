@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
+using ZWave.Serial;
 
-namespace ZWave.Serial.Tests;
+namespace ZWave.Tests.Serial;
 
 [TestClass]
 public class FrameTests
