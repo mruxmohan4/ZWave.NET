@@ -10,5 +10,5 @@ internal static class DataFrameType
     /// <summary>
     /// Response
     /// </summary>
-    public const byte RES = 0x00;
+    public const byte RES = 0x01;
 }
