@@ -10,17 +10,21 @@ public readonly struct DataFrame
         // Index 1: Frame length
         Type = data.Span[2];
         CommandId = data.Span[3];
-        CommandParameters = data.Slice(4, data.Length - 5);
+        CommandParameters = data[4..^1];
 
-        // Note that the checksum calculation does not include the SOF or the checksum itself
-        int checksumIndex = data.Length - 1;
-        byte expectedChecksum = 0xFF;
-        for (int i = 1; i < checksumIndex; i++)
-        {
-            expectedChecksum ^= data.Span[i];
-        }
+        byte expectedChecksum = CalculateChecksum(data.Span);
+        int checksum = data.Span[data.Length - 1];
+        IsChecksumValid = checksum ==  expectedChecksum;
+    }
 
-        IsChecksumValid = data.Span[checksumIndex] ==  expectedChecksum;
+    public DataFrame(byte type, byte commandId, ReadOnlyMemory<byte> commandParameters)
+    {
+        Type = type;
+        CommandId = commandId;
+        CommandParameters = commandParameters;
+
+        // We'll always produce a valid checksum for a data frame we create.
+        IsChecksumValid = true;
     }
 
     public byte Type { get; }
@@ -30,4 +34,30 @@ public readonly struct DataFrame
     public ReadOnlyMemory<byte> CommandParameters { get; }
 
     public bool IsChecksumValid { get; }
+
+    public void WriteToStream(Stream stream)
+    {
+        Span<byte> data = stackalloc byte[5 + CommandParameters.Length];
+        data[0] = FrameHeader.SOF;
+        data[1] = (byte)(data.Length - 2); // Frame length does not include the SOF or Checksum
+        data[2] = Type;
+        data[3] = CommandId;
+        CommandParameters.Span.CopyTo(data[4..]);
+        data[data.Length - 1] = CalculateChecksum(data);
+
+        stream.Write(data);
+    }
+
+    private static byte CalculateChecksum(ReadOnlySpan<byte> data)
+    {
+        byte checksum = 0xFF;
+
+        // The checksum calculation does not include the SOF or the checksum itself
+        for (int i = 1; i < data.Length - 1; i++)
+        {
+            checksum ^= data[i];
+        }
+
+        return checksum;
+    }
 }

@@ -2,14 +2,65 @@
 
 public sealed class ZWaveStateMachine : IDisposable
 {
+    private record struct AwaitedCommand(byte CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
+
     private readonly Stream _stream;
 
     private readonly ZWaveFrameListener _listener;
+
+    private readonly List<AwaitedCommand> _awaitedCommands = new List<AwaitedCommand>();
+
+    private State _state;
 
     public ZWaveStateMachine(Stream stream)
     {
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
         _listener = new ZWaveFrameListener(stream, ProcessFrame);
+        _state = State.Uninitialized;
+    }
+
+    private enum State
+    {
+        Uninitialized,
+        Initializing,
+        Idle
+    }
+
+    public async Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        if (_state != State.Uninitialized)
+        {
+            throw new InvalidOperationException("The state machine is already initialized");
+        }
+
+        _state = State.Initializing;
+
+        // Perform initialization sequence (INS12350 6.1)
+        await _stream.WriteAsync(Frame.NAK.Data, cancellationToken).ConfigureAwait(false);
+
+        // TODO: how do we know whether we should soft or hard reset?
+
+        // Soft reset
+        var softResetRequest = new DataFrame(DataFrameType.REQ, CommandId.SerialApiSoftReset, ReadOnlyMemory<byte>.Empty);
+        softResetRequest.WriteToStream(_stream);
+
+        // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
+        TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
+        DataFrame? frame = await WaitForCommand(
+            CommandId.SerialApiStarted,
+            serialApiStartedWaitTime,
+            cancellationToken).ConfigureAwait(false);
+        if (frame == null)
+        {
+            // TODO: Try reconnecting the port (uh oh), and then wait for
+            // SerialApiStarted again (5 sec [configureable] timeout), then check if the
+            // controller responds to some arbirary command (GetControllerVersion?).
+            // Retry a few times.
+            // TODO: Fail in some better way
+            throw new Exception();
+        }
+
+        _state = State.Idle;
     }
 
     public void Dispose()
@@ -73,6 +124,23 @@ public sealed class ZWaveStateMachine : IDisposable
             {
                 SendFrame(Frame.ACK);
 
+                // TODO: What if there are more than one awaiter?
+                // TODO: Thread-safety
+                AwaitedCommand? matchingAwaitedCommand = null;
+                foreach (AwaitedCommand awaitedCommand in _awaitedCommands)
+                {
+                    if (frame.CommandId == awaitedCommand.CommandId)
+                    {
+                        matchingAwaitedCommand = awaitedCommand;
+                    }
+                }
+
+                if (matchingAwaitedCommand.HasValue)
+                {
+                    matchingAwaitedCommand.Value.TaskCompletionSource.SetResult(frame);
+                    _awaitedCommands.Remove(matchingAwaitedCommand.Value);
+                }
+
                 // TODO
                 break;
             }
@@ -97,5 +165,20 @@ public sealed class ZWaveStateMachine : IDisposable
     {
         // TODO: Make async
         _stream.Write(frame.Data.Span);
+    }
+
+    private async Task<DataFrame?> WaitForCommand(byte commandId, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        TaskCompletionSource<DataFrame> taskCompletionSource = new TaskCompletionSource<DataFrame>();
+        _awaitedCommands.Add(new AwaitedCommand(commandId, taskCompletionSource));
+
+        try
+        {
+            return await taskCompletionSource.Task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            return null;
+        }
     }
 }
