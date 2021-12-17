@@ -1,16 +1,26 @@
 ﻿using System.Buffers;
 using System.IO.Pipelines;
 
+using Microsoft.Extensions.Logging;
+
 namespace ZWave.Serial;
 
-public sealed class ZWaveFrameListener : IDisposable
+public sealed partial class ZWaveFrameListener : IDisposable
 {
     private readonly PipeReader _reader;
 
     private readonly CancellationTokenSource _cancellationTokenSource;
 
-    public ZWaveFrameListener(Stream stream, Action<Frame> frameHandler)
+    public ZWaveFrameListener(
+        ILogger logger,
+        Stream stream,
+        Action<Frame> frameHandler)
     {
+        if (logger == null)
+        {
+            throw new ArgumentNullException(nameof(logger));
+        }
+
         if (stream == null)
         {
             throw new ArgumentNullException(nameof(stream));
@@ -23,7 +33,7 @@ public sealed class ZWaveFrameListener : IDisposable
 
         _reader = PipeReader.Create(stream, new StreamPipeReaderOptions(leaveOpen: true));
         _cancellationTokenSource = new CancellationTokenSource();
-        Task.Run(() => ReadAsync(_reader, frameHandler, _cancellationTokenSource.Token));
+        Task.Run(() => ReadAsync(logger, _reader, frameHandler, _cancellationTokenSource.Token));
     }
 
     public void Dispose()
@@ -33,6 +43,7 @@ public sealed class ZWaveFrameListener : IDisposable
     }
 
     private static async Task ReadAsync(
+        ILogger logger,
         PipeReader reader,
         Action<Frame> frameHandler,
         CancellationToken cancellationToken)
@@ -47,7 +58,7 @@ public sealed class ZWaveFrameListener : IDisposable
                 break;
             }
 
-            while (FrameParser.TryParseData(ref buffer, out Frame frame))
+            while (FrameParser.TryParseData(logger, ref buffer, out Frame frame))
             {
                 // TODO: Should we be invoking user code directly like this?
                 // It blocks parsing new frames. How should exceptions be handled?

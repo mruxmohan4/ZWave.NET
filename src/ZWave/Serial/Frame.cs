@@ -91,4 +91,13 @@ public readonly struct Frame : IEquatable<Frame>
         hash.AddBytes(Data.Span);
         return hash.ToHashCode();
     }
+
+    public override string ToString() => Type switch
+    {
+        FrameType.ACK => nameof(FrameType.ACK),
+        FrameType.NAK => nameof(FrameType.NAK),
+        FrameType.CAN => nameof(FrameType.CAN),
+        FrameType.Data => $"{nameof(FrameType.Data)} [Size={Data.Length}]",
+        _ => throw new NotImplementedException(),
+    };
 }

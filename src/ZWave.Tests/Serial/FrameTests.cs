@@ -9,10 +9,10 @@ public class FrameTests
     private static readonly ReadOnlyMemory<byte> ValidDataFrameData = new byte[]
     {
         FrameHeader.SOF,
-        3,                  // Length
+        3, // Length
         DataFrameType.RES,
-        0x00,               // Command id. TODO: Use const
-        0xFC                // Checksum
+        CommandId.SerialApiStarted,
+        0xFC // Checksum
     };
 
     [TestMethod]
@@ -50,10 +50,10 @@ public class FrameTests
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         })]
     public void ConstructorDataSingletons(bool expectSingleton, byte[] inputFrameData)
     {
@@ -102,10 +102,10 @@ public class FrameTests
         byte[] frameData = new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         };
         var frame = new Frame(frameData);
 
@@ -131,36 +131,36 @@ public class FrameTests
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         },
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         })]
     [DataRow(
         false,
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         },
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x01,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiSoftReset,
+            0xFC // Checksum
         })]
     public void Equality(bool expectedAreEqual, byte[] frameData1, byte[] frameData2)
     {
@@ -177,10 +177,10 @@ public class FrameTests
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         })]
     public void GetHashCodeConsistency(byte[] frameData)
     {
@@ -210,18 +210,18 @@ public class FrameTests
         AddHashCode(new Frame(new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         }));
         AddHashCode(new Frame(new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x01,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiSoftReset,
+            0xFC // Checksum
         }));
 
         Assert.AreEqual(hashCodesAdded, hashCodes.Count);

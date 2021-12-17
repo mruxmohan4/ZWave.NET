@@ -1,5 +1,7 @@
 ﻿using System.Buffers;
 
+using Microsoft.Extensions.Logging;
+
 namespace ZWave.Serial;
 
 internal static class FrameParser
@@ -12,7 +14,7 @@ internal static class FrameParser
     /// True if a frame was successfully read. If false, the caller should
     /// disregard any change of position in the buffer.
     /// </returns>
-    public static bool TryParseData(ref ReadOnlySequence<byte> sequence, out Frame frame)
+    public static bool TryParseData(ILogger logger, ref ReadOnlySequence<byte> sequence, out Frame frame)
     {
         frame = default;
 
@@ -25,12 +27,15 @@ internal static class FrameParser
         var reader = new SequenceReader<byte>(sequence);
 
         // Skip any invalid data
-        if (!reader.TryReadToAny(out ReadOnlySequence<byte> _, FrameHeader.ValidHeaders, advancePastDelimiter: false))
+        if (!reader.TryReadToAny(out ReadOnlySequence<byte> skippedSequence, FrameHeader.ValidHeaders, advancePastDelimiter: false))
         {
             // We didn't find any valid data, so consume the entire sequence
             sequence = sequence.Slice(sequence.End);
+            logger.LogSerialApiSkippedBytes(sequence.Length);
             return false;
         }
+
+        logger.LogSerialApiSkippedBytes(skippedSequence.Length);
 
         // Consume the invalid data regardless of whether we find the frame complete later.
         sequence = sequence.Slice(reader.Position);
@@ -46,25 +51,28 @@ internal static class FrameParser
             {
                 frame = Frame.ACK;
                 sequence = sequence.Slice(1);
+                logger.LogSerialApiFrameReceived(frame);
                 return true;
             }
             case FrameHeader.NAK:
             {
                 frame = Frame.NAK;
                 sequence = sequence.Slice(1);
+                logger.LogSerialApiFrameReceived(frame);
                 return true;
             }
             case FrameHeader.CAN:
             {
                 frame = Frame.CAN;
                 sequence = sequence.Slice(1);
+                logger.LogSerialApiFrameReceived(frame);
                 return true;
             }
             case FrameHeader.SOF:
             {
                 if (!reader.TryPeek(1, out byte lengthByte))
                 {
-                    // Incomplete message
+                    logger.LogSerialApiPartialDataFrameReceived(reader.Remaining);
                     return false;
                 }
 
@@ -72,7 +80,7 @@ internal static class FrameParser
                 int frameLength = lengthByte + 2;
                 if (reader.Remaining < frameLength)
                 {
-                    // Incomplete message
+                    logger.LogSerialApiPartialDataFrameReceived(reader.Remaining);
                     return false;
                 }
 
@@ -85,6 +93,7 @@ internal static class FrameParser
                 // A complete data frame was read. Advance the sequence.
                 sequence = sequence.Slice(frameLength);
                 frame = new Frame(frameData);
+                logger.LogSerialApiFrameReceived(frame);
                 return true;
             }
             default:

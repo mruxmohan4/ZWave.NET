@@ -1,5 +1,7 @@
 ﻿using System.IO.Ports;
 
+using Microsoft.Extensions.Logging;
+
 namespace ZWave.Serial;
 
 /// <summary>
@@ -10,10 +12,19 @@ namespace ZWave.Serial;
 /// </remarks>
 public sealed class ZWaveSerialPortStream : Stream
 {
+    private readonly ILogger _logger;
+
     private readonly SerialPort _port;
 
-    public ZWaveSerialPortStream(string portName)
+    public ZWaveSerialPortStream(ILogger logger, string portName)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        if (string.IsNullOrEmpty(portName))
+        {
+            throw new ArgumentNullException(nameof(portName));
+        }
+
         _port = new SerialPort(
             portName,
             baudRate: 115200,
@@ -23,6 +34,8 @@ public sealed class ZWaveSerialPortStream : Stream
         _port.Open();
         _port.DiscardInBuffer();
         _port.DiscardOutBuffer();
+
+        _logger.LogSerialApiPortOpened(_port.PortName);
     }
 
     /*
@@ -32,6 +45,8 @@ public sealed class ZWaveSerialPortStream : Stream
     public override void Close()
     {
         _port.Close();
+        _logger.LogSerialApiPortClosed(_port.PortName);
+
         base.Close();
     }
 

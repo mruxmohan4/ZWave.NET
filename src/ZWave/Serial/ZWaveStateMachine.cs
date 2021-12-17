@@ -1,8 +1,12 @@
-﻿namespace ZWave.Serial;
+﻿using Microsoft.Extensions.Logging;
+
+namespace ZWave.Serial;
 
 public sealed class ZWaveStateMachine : IDisposable
 {
     private record struct AwaitedCommand(byte CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
+
+    private readonly ILogger _logger;
 
     private readonly Stream _stream;
 
@@ -12,10 +16,11 @@ public sealed class ZWaveStateMachine : IDisposable
 
     private State _state;
 
-    public ZWaveStateMachine(Stream stream)
+    public ZWaveStateMachine(ILogger logger, Stream stream)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
-        _listener = new ZWaveFrameListener(stream, ProcessFrame);
+        _listener = new ZWaveFrameListener(logger, stream, ProcessFrame);
         _state = State.Uninitialized;
     }
 
@@ -34,6 +39,7 @@ public sealed class ZWaveStateMachine : IDisposable
         }
 
         _state = State.Initializing;
+        _logger.LogInitializing();
 
         // Perform initialization sequence (INS12350 6.1)
         await _stream.WriteAsync(Frame.NAK.Data, cancellationToken).ConfigureAwait(false);
@@ -41,12 +47,13 @@ public sealed class ZWaveStateMachine : IDisposable
         // TODO: how do we know whether we should soft or hard reset?
 
         // Soft reset
+        _logger.LogSoftReset();
         var softResetRequest = new DataFrame(DataFrameType.REQ, CommandId.SerialApiSoftReset, ReadOnlyMemory<byte>.Empty);
         softResetRequest.WriteToStream(_stream);
 
         // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
         TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
-        DataFrame? frame = await WaitForCommand(
+        DataFrame? frame = await WaitForCommandAsync(
             CommandId.SerialApiStarted,
             serialApiStartedWaitTime,
             cancellationToken).ConfigureAwait(false);
@@ -60,6 +67,7 @@ public sealed class ZWaveStateMachine : IDisposable
             throw new Exception();
         }
 
+        _logger.LogInitialized();
         _state = State.Idle;
     }
 
@@ -109,6 +117,8 @@ public sealed class ZWaveStateMachine : IDisposable
         // A host or Z-Wave chip MUST return a NAK frame in response to an invalid Data frame.
         if (!frame.IsChecksumValid)
         {
+            _logger.LogSerialApiInvalidDataFrame(frame);
+
             SendFrame(Frame.NAK);
 
             // From INS12350 6.4.2
@@ -153,7 +163,7 @@ public sealed class ZWaveStateMachine : IDisposable
             {
                 // From INS12350 5.4.3
                 // A receiving end MUST ignore reserved Type values.
-                // TODO: Log
+                _logger.LogSerialApiDataFrameUnknownType(frame.Type);
                 break;
             }
         }
@@ -163,11 +173,12 @@ public sealed class ZWaveStateMachine : IDisposable
 
     private void SendFrame(Frame frame)
     {
-        // TODO: Make async
+        // TODO: Make async? Frames are pretty small, so maybe not?
+        _logger.LogSerialApiFrameSent(frame);
         _stream.Write(frame.Data.Span);
     }
 
-    private async Task<DataFrame?> WaitForCommand(byte commandId, TimeSpan timeout, CancellationToken cancellationToken)
+    private async Task<DataFrame?> WaitForCommandAsync(byte commandId, TimeSpan timeout, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataFrame> taskCompletionSource = new TaskCompletionSource<DataFrame>();
         _awaitedCommands.Add(new AwaitedCommand(commandId, taskCompletionSource));

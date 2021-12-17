@@ -11,10 +11,10 @@ public class DataFrameTests
         var frameData = new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         };
 
         var dataFrame = new DataFrame(frameData);
@@ -30,10 +30,10 @@ public class DataFrameTests
         var frameData = new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0x00                // Checksum
+            CommandId.SerialApiStarted,
+            0x00 // Checksum
         };
 
         var dataFrame = new DataFrame(frameData);
@@ -49,13 +49,13 @@ public class DataFrameTests
         var frameData = new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0x01,               // Command parameter 1
-            0x02,               // Command parameter 2
-            0x03,               // Command parameter 3
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0x01, // Command parameter 1
+            0x02, // Command parameter 2
+            0x03, // Command parameter 3
+            0xFC // Checksum
         };
 
         var dataFrame = new DataFrame(frameData);

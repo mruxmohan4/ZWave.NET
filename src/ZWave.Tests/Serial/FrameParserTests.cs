@@ -1,4 +1,7 @@
 ﻿using System.Buffers;
+
+using Microsoft.Extensions.Logging.Abstractions;
+
 using ZWave.Serial;
 
 namespace ZWave.Tests.Serial;
@@ -11,7 +14,7 @@ public class FrameParserTests
     {
         var sequence = ReadOnlySequence<byte>.Empty;
 
-        var success = FrameParser.TryParseData(ref sequence, out Frame frame);
+        var success = FrameParser.TryParseData(NullLogger.Instance, ref sequence, out Frame frame);
         Assert.IsFalse(success);
         Assert.IsTrue(sequence.IsEmpty);
         Assert.AreEqual(default, frame);
@@ -29,7 +32,7 @@ public class FrameParserTests
         };
         var sequence = new ReadOnlySequence<byte>(bytes);
 
-        var success = FrameParser.TryParseData(ref sequence, out Frame frame);
+        var success = FrameParser.TryParseData(NullLogger.Instance, ref sequence, out Frame frame);
         Assert.IsFalse(success);
         Assert.IsTrue(sequence.IsEmpty);
         Assert.AreEqual(default, frame);
@@ -44,7 +47,7 @@ public class FrameParserTests
         var bytes = new[] { frameHeader };
         var sequence = new ReadOnlySequence<byte>(bytes);
 
-        var success = FrameParser.TryParseData(ref sequence, out Frame frame);
+        var success = FrameParser.TryParseData(NullLogger.Instance, ref sequence, out Frame frame);
         Assert.IsTrue(success);
         Assert.IsTrue(sequence.IsEmpty);
         Assert.AreEqual(new Frame(bytes), frame);
@@ -63,7 +66,7 @@ public class FrameParserTests
         };
         var sequence = new ReadOnlySequence<byte>(bytes);
 
-        var success = FrameParser.TryParseData(ref sequence, out Frame frame);
+        var success = FrameParser.TryParseData(NullLogger.Instance, ref sequence, out Frame frame);
         Assert.IsTrue(success);
         Assert.IsTrue(sequence.IsEmpty);
         Assert.AreEqual(Frame.ACK, frame);
@@ -80,7 +83,7 @@ public class FrameParserTests
         };
         var sequence = new ReadOnlySequence<byte>(bytes);
 
-        var success = FrameParser.TryParseData(ref sequence, out Frame frame);
+        var success = FrameParser.TryParseData(NullLogger.Instance, ref sequence, out Frame frame);
         Assert.IsTrue(success);
         Assert.AreEqual(bytes.Length - 1, sequence.Length);
         Assert.AreEqual(Frame.ACK, frame);
@@ -92,14 +95,14 @@ public class FrameParserTests
         var bytes = new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
-            0xFC                // Checksum
+            CommandId.SerialApiStarted,
+            0xFC // Checksum
         };
         var sequence = new ReadOnlySequence<byte>(bytes);
 
-        var success = FrameParser.TryParseData(ref sequence, out Frame frame);
+        var success = FrameParser.TryParseData(NullLogger.Instance, ref sequence, out Frame frame);
         Assert.IsTrue(success);
         Assert.IsTrue(sequence.IsEmpty);
         Assert.AreEqual(FrameType.Data, frame.Type);
@@ -110,22 +113,22 @@ public class FrameParserTests
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
-            0x00,               // Command id. TODO: Use const
+            CommandId.SerialApiStarted,
         })]
     [DataRow(
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
             DataFrameType.RES,
         })]
     [DataRow(
         new byte[]
         {
             FrameHeader.SOF,
-            3,                  // Length
+            3, // Length
         })]
     [DataRow(
         new byte[]
@@ -136,7 +139,7 @@ public class FrameParserTests
     {
         var sequence = new ReadOnlySequence<byte>(bytes);
 
-        var success = FrameParser.TryParseData(ref sequence, out Frame frame);
+        var success = FrameParser.TryParseData(NullLogger.Instance, ref sequence, out Frame frame);
         Assert.IsFalse(success);
         Assert.AreEqual(bytes.Length, sequence.Length);
         Assert.AreEqual(default, frame);

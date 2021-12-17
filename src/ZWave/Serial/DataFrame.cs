@@ -1,4 +1,6 @@
-﻿namespace ZWave.Serial;
+﻿using System.Text;
+
+namespace ZWave.Serial;
 
 public readonly struct DataFrame
 {
@@ -46,6 +48,33 @@ public readonly struct DataFrame
         data[data.Length - 1] = CalculateChecksum(data);
 
         stream.Write(data);
+    }
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        sb.Append("DataFrame [Type=");
+        sb.Append(Type.ToString("x"));
+        sb.Append(", CommandId=");
+        sb.Append(CommandId.ToString("x"));
+        sb.Append(", CommandParameters=");
+        for (int i = 0; i < CommandParameters.Length; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(' ');
+            }
+
+            sb.Append(CommandParameters.Span[i].ToString("x"));
+        }
+
+        if (!IsChecksumValid)
+        {
+            sb.Append(", InvalidChecksum");
+        }
+
+        sb.Append(']');
+        return sb.ToString();
     }
 
     private static byte CalculateChecksum(ReadOnlySpan<byte> data)

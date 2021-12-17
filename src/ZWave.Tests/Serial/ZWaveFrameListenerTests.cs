@@ -1,6 +1,9 @@
 ﻿using System.Diagnostics;
 using System.IO.Pipelines;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using ZWave.Serial;
 
 namespace ZWave.Tests.Serial;
@@ -16,11 +19,11 @@ public class ZWaveFrameListenerTests
     [TestMethod]
     public void ConstructorValidation()
     {
+        var logger = NullLogger.Instance;
         using var stream = new MemoryStream();
         Action<Frame> frameHandler = _ => { };
 
-        Assert.ThrowsException<ArgumentNullException>(() => new ZWaveFrameListener(stream: null!, frameHandler));
-        Assert.ThrowsException<ArgumentNullException>(() => new ZWaveFrameListener(stream, frameHandler: null!));
+        Assert.That.ConstructorValidatesNull<ZWaveFrameListener>(logger, stream, frameHandler);
     }
 
     [TestMethod]
@@ -36,7 +39,7 @@ public class ZWaveFrameListenerTests
             frameReadEvent.Set();
         };
 
-        using var listener = new ZWaveFrameListener(pipe.Reader.AsStream(), frameHandler);
+        using var listener = new ZWaveFrameListener(NullLogger.Instance, pipe.Reader.AsStream(), frameHandler);
 
         await pipe.Writer.WriteAsync(new[] { FrameHeader.ACK });
         frameReadEvent.WaitOne(MillisecondsTimeout);
@@ -60,7 +63,7 @@ public class ZWaveFrameListenerTests
             frameReadEvent.Set();
         };
 
-        using var listener = new ZWaveFrameListener(pipe.Reader.AsStream(), frameHandler);
+        using var listener = new ZWaveFrameListener(NullLogger.Instance, pipe.Reader.AsStream(), frameHandler);
 
         await pipe.Writer.WriteAsync(new[] { FrameHeader.ACK, FrameHeader.NAK, FrameHeader.CAN });
         frameReadEvent.WaitOne(MillisecondsTimeout);
@@ -86,7 +89,7 @@ public class ZWaveFrameListenerTests
             frameReadEvent.Set();
         };
 
-        using var listener = new ZWaveFrameListener(pipe.Reader.AsStream(), frameHandler);
+        using var listener = new ZWaveFrameListener(NullLogger.Instance, pipe.Reader.AsStream(), frameHandler);
 
         await pipe.Writer.WriteAsync(new[] { FrameHeader.ACK });
         Assert.IsTrue(frameReadEvent.WaitOne(MillisecondsTimeout));
@@ -111,7 +114,7 @@ public class ZWaveFrameListenerTests
         var pipe = new Pipe();
         Action<Frame> frameHandler = frame => { };
 
-        var listener = new ZWaveFrameListener(pipe.Reader.AsStream(), frameHandler);
+        var listener = new ZWaveFrameListener(NullLogger.Instance, pipe.Reader.AsStream(), frameHandler);
 
         bool keepWriting = true;
         var writeTask = Task.Run(async () =>
