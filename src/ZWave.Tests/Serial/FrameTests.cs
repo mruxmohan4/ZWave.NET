@@ -10,9 +10,9 @@ public class FrameTests
     {
         FrameHeader.SOF,
         3, // Length
-        DataFrameType.RES,
-        CommandId.SerialApiStarted,
-        0xFC // Checksum
+        (byte)DataFrameType.REQ,
+        (byte)CommandId.SerialApiStarted,
+        0xF6 // Checksum
     };
 
     [TestMethod]
@@ -51,9 +51,9 @@ public class FrameTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         })]
     public void ConstructorDataSingletons(bool expectSingleton, byte[] inputFrameData)
     {
@@ -103,9 +103,9 @@ public class FrameTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         };
         var frame = new Frame(frameData);
 
@@ -132,17 +132,17 @@ public class FrameTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         },
         new byte[]
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         })]
     [DataRow(
         false,
@@ -150,17 +150,17 @@ public class FrameTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         },
         new byte[]
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiSoftReset,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiSoftReset,
+            0xF6 // Checksum
         })]
     public void Equality(bool expectedAreEqual, byte[] frameData1, byte[] frameData2)
     {
@@ -178,9 +178,9 @@ public class FrameTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         })]
     public void GetHashCodeConsistency(byte[] frameData)
     {
@@ -211,17 +211,17 @@ public class FrameTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         }));
         AddHashCode(new Frame(new byte[]
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiSoftReset,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiSoftReset,
+            0xF6 // Checksum
         }));
 
         Assert.AreEqual(hashCodesAdded, hashCodes.Count);

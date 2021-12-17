@@ -96,9 +96,9 @@ public class FrameParserTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
-            0xFC // Checksum
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
+            0xF6 // Checksum
         };
         var sequence = new ReadOnlySequence<byte>(bytes);
 
@@ -114,15 +114,15 @@ public class FrameParserTests
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
-            CommandId.SerialApiStarted,
+            (byte)DataFrameType.REQ,
+            (byte)CommandId.SerialApiStarted,
         })]
     [DataRow(
         new byte[]
         {
             FrameHeader.SOF,
             3, // Length
-            DataFrameType.RES,
+            (byte)DataFrameType.REQ,
         })]
     [DataRow(
         new byte[]

@@ -1,8 +1,8 @@
 ﻿namespace ZWave.Serial;
 
-internal static class CommandId
+public enum CommandId : byte
 {
-    public const byte SerialApiSoftReset = 0x08;
+    SerialApiSoftReset = 0x08,
 
-    public const byte SerialApiStarted = 0x0a;
+    SerialApiStarted = 0x0a,
 }

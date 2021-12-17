@@ -1,14 +1,14 @@
 ﻿namespace ZWave.Serial;
 
-internal static class DataFrameType
+public enum DataFrameType : byte
 {
     /// <summary>
     /// Request
     /// </summary>
-    public const byte REQ = 0x00;
+    REQ = 0x00,
 
     /// <summary>
     /// Response
     /// </summary>
-    public const byte RES = 0x01;
+    RES = 0x01,
 }

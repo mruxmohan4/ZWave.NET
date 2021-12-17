@@ -51,7 +51,7 @@ internal static partial class Logging
         EventId = 7,
         Level = LogLevel.Trace,
         Message = "Received Serial API data frame with unknown type `{dataFrameType}`")]
-    public static partial void LogSerialApiDataFrameUnknownType(this ILogger logger, byte dataFrameType);
+    public static partial void LogSerialApiDataFrameUnknownType(this ILogger logger, DataFrameType dataFrameType);
 
     [LoggerMessage(
         EventId = 8,

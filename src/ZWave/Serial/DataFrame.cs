@@ -10,8 +10,8 @@ public readonly struct DataFrame
 
         // Index 0: SOF
         // Index 1: Frame length
-        Type = data.Span[2];
-        CommandId = data.Span[3];
+        Type = (DataFrameType)data.Span[2];
+        CommandId = (CommandId)data.Span[3];
         CommandParameters = data[4..^1];
 
         byte expectedChecksum = CalculateChecksum(data.Span);
@@ -19,7 +19,7 @@ public readonly struct DataFrame
         IsChecksumValid = checksum ==  expectedChecksum;
     }
 
-    public DataFrame(byte type, byte commandId, ReadOnlyMemory<byte> commandParameters)
+    public DataFrame(DataFrameType type, CommandId commandId, ReadOnlyMemory<byte> commandParameters)
     {
         Type = type;
         CommandId = commandId;
@@ -29,9 +29,9 @@ public readonly struct DataFrame
         IsChecksumValid = true;
     }
 
-    public byte Type { get; }
+    public DataFrameType Type { get; }
 
-    public byte CommandId { get; }
+    public CommandId CommandId { get; }
 
     public ReadOnlyMemory<byte> CommandParameters { get; }
 
@@ -42,8 +42,8 @@ public readonly struct DataFrame
         Span<byte> data = stackalloc byte[5 + CommandParameters.Length];
         data[0] = FrameHeader.SOF;
         data[1] = (byte)(data.Length - 2); // Frame length does not include the SOF or Checksum
-        data[2] = Type;
-        data[3] = CommandId;
+        data[2] = (byte)Type;
+        data[3] = (byte)CommandId;
         CommandParameters.Span.CopyTo(data[4..]);
         data[data.Length - 1] = CalculateChecksum(data);
 
@@ -54,9 +54,9 @@ public readonly struct DataFrame
     {
         var sb = new StringBuilder();
         sb.Append("DataFrame [Type=");
-        sb.Append(Type.ToString("x"));
+        sb.Append(Type);
         sb.Append(", CommandId=");
-        sb.Append(CommandId.ToString("x"));
+        sb.Append(CommandId);
         sb.Append(", CommandParameters=");
         for (int i = 0; i < CommandParameters.Length; i++)
         {

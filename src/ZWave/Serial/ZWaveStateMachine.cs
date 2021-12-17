@@ -4,7 +4,7 @@ namespace ZWave.Serial;
 
 public sealed class ZWaveStateMachine : IDisposable
 {
-    private record struct AwaitedCommand(byte CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
+    private record struct AwaitedCommand(CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
 
     private readonly ILogger _logger;
 
@@ -178,7 +178,7 @@ public sealed class ZWaveStateMachine : IDisposable
         _stream.Write(frame.Data.Span);
     }
 
-    private async Task<DataFrame?> WaitForCommandAsync(byte commandId, TimeSpan timeout, CancellationToken cancellationToken)
+    private async Task<DataFrame?> WaitForCommandAsync(CommandId commandId, TimeSpan timeout, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataFrame> taskCompletionSource = new TaskCompletionSource<DataFrame>();
         _awaitedCommands.Add(new AwaitedCommand(commandId, taskCompletionSource));
