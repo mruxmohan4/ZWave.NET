@@ -19,6 +19,11 @@ public readonly struct DataFrame
         IsChecksumValid = checksum ==  expectedChecksum;
     }
 
+    public DataFrame(DataFrameType type, CommandId commandId)
+        : this(type, commandId, ReadOnlyMemory<byte>.Empty)
+    {
+    }
+
     public DataFrame(DataFrameType type, CommandId commandId, ReadOnlyMemory<byte> commandParameters)
     {
         Type = type;

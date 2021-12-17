@@ -50,23 +50,29 @@ internal static partial class Logging
     [LoggerMessage(
         EventId = 7,
         Level = LogLevel.Trace,
+        Message = "Sent Serial API data frame: {frame}")]
+    public static partial void LogSerialApiDataFrameSent(this ILogger logger, DataFrame frame);
+
+    [LoggerMessage(
+        EventId = 8,
+        Level = LogLevel.Trace,
         Message = "Received Serial API data frame with unknown type `{dataFrameType}`")]
     public static partial void LogSerialApiDataFrameUnknownType(this ILogger logger, DataFrameType dataFrameType);
 
     [LoggerMessage(
-        EventId = 8,
+        EventId = 9,
         Level = LogLevel.Information,
         Message = "Initialization sequence starting")]
     public static partial void LogInitializing(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 9,
+        EventId = 10,
         Level = LogLevel.Information,
         Message = "Performing soft reset")]
     public static partial void LogSoftReset(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 10,
+        EventId = 11,
         Level = LogLevel.Information,
         Message = "Initialization sequence complete")]
     public static partial void LogInitialized(this ILogger logger);

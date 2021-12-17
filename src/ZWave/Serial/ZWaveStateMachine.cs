@@ -4,7 +4,7 @@ namespace ZWave.Serial;
 
 public sealed class ZWaveStateMachine : IDisposable
 {
-    private record struct AwaitedCommand(CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
+    private record struct AwaitedCommand(DataFrameType Type, CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
 
     private readonly ILogger _logger;
 
@@ -48,12 +48,13 @@ public sealed class ZWaveStateMachine : IDisposable
 
         // Soft reset
         _logger.LogSoftReset();
-        var softResetRequest = new DataFrame(DataFrameType.REQ, CommandId.SerialApiSoftReset, ReadOnlyMemory<byte>.Empty);
-        softResetRequest.WriteToStream(_stream);
+        var softResetRequest = new DataFrame(DataFrameType.REQ, CommandId.SerialApiSoftReset);
+        SendFrame(softResetRequest);
 
         // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
         TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
         DataFrame? frame = await WaitForCommandAsync(
+            DataFrameType.REQ,
             CommandId.SerialApiStarted,
             serialApiStartedWaitTime,
             cancellationToken).ConfigureAwait(false);
@@ -66,6 +67,38 @@ public sealed class ZWaveStateMachine : IDisposable
             // TODO: Fail in some better way
             throw new Exception();
         }
+
+        // TODO: Implement better request/response pattern
+        var getControllerIdRequest = new DataFrame(DataFrameType.REQ, CommandId.GetControllerId);
+        SendFrame(getControllerIdRequest);
+        DataFrame? getControllerIdResponse = await WaitForCommandAsync(
+            DataFrameType.RES,
+            CommandId.GetControllerId,
+            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+            cancellationToken).ConfigureAwait(false);
+        if (getControllerIdResponse == null)
+        {
+            // TODO: Fail in some better way
+            throw new Exception();
+        }
+
+        // TODO: Do something with the controller id response
+
+        // TODO: Implement better request/response pattern
+        var getSerialCapabilitiesRequest = new DataFrame(DataFrameType.REQ, CommandId.GetSerialApiCapabilities);
+        SendFrame(getSerialCapabilitiesRequest);
+        DataFrame? getSerialCapabilitiesResponse = await WaitForCommandAsync(
+            DataFrameType.RES,
+            CommandId.GetSerialApiCapabilities,
+            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+            cancellationToken).ConfigureAwait(false);
+        if (getSerialCapabilitiesResponse == null)
+        {
+            // TODO: Fail in some better way
+            throw new Exception();
+        }
+
+        // TODO: Do something with the serial api capabilities
 
         _logger.LogInitialized();
         _state = State.Idle;
@@ -128,28 +161,29 @@ public sealed class ZWaveStateMachine : IDisposable
             // TODO
         }
 
+        // TODO: What if there are more than one awaiter?
+        // TODO: Thread-safety
+        AwaitedCommand? matchingAwaitedCommand = null;
+        foreach (AwaitedCommand awaitedCommand in _awaitedCommands)
+        {
+            if (frame.Type == awaitedCommand.Type
+                && frame.CommandId == awaitedCommand.CommandId)
+            {
+                matchingAwaitedCommand = awaitedCommand;
+            }
+        }
+
+        if (matchingAwaitedCommand.HasValue)
+        {
+            matchingAwaitedCommand.Value.TaskCompletionSource.SetResult(frame);
+            _awaitedCommands.Remove(matchingAwaitedCommand.Value);
+        }
+
         switch (frame.Type)
         {
             case DataFrameType.REQ:
             {
                 SendFrame(Frame.ACK);
-
-                // TODO: What if there are more than one awaiter?
-                // TODO: Thread-safety
-                AwaitedCommand? matchingAwaitedCommand = null;
-                foreach (AwaitedCommand awaitedCommand in _awaitedCommands)
-                {
-                    if (frame.CommandId == awaitedCommand.CommandId)
-                    {
-                        matchingAwaitedCommand = awaitedCommand;
-                    }
-                }
-
-                if (matchingAwaitedCommand.HasValue)
-                {
-                    matchingAwaitedCommand.Value.TaskCompletionSource.SetResult(frame);
-                    _awaitedCommands.Remove(matchingAwaitedCommand.Value);
-                }
 
                 // TODO
                 break;
@@ -178,10 +212,16 @@ public sealed class ZWaveStateMachine : IDisposable
         _stream.Write(frame.Data.Span);
     }
 
-    private async Task<DataFrame?> WaitForCommandAsync(CommandId commandId, TimeSpan timeout, CancellationToken cancellationToken)
+    private void SendFrame(DataFrame frame)
+    {
+        _logger.LogSerialApiDataFrameSent(frame);
+        frame.WriteToStream(_stream);
+    }
+
+    private async Task<DataFrame?> WaitForCommandAsync(DataFrameType type, CommandId commandId, TimeSpan timeout, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataFrame> taskCompletionSource = new TaskCompletionSource<DataFrame>();
-        _awaitedCommands.Add(new AwaitedCommand(commandId, taskCompletionSource));
+        _awaitedCommands.Add(new AwaitedCommand(type, commandId, taskCompletionSource));
 
         try
         {
