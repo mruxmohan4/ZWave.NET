@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.IO;
+
+using Microsoft.Extensions.Logging;
+
+using ZWave.Commands;
 
 namespace ZWave.Serial;
 
@@ -48,8 +52,8 @@ public sealed class ZWaveStateMachine : IDisposable
 
         // Soft reset
         _logger.LogSoftReset();
-        var softResetRequest = new DataFrame(DataFrameType.REQ, CommandId.SerialApiSoftReset);
-        SendFrame(softResetRequest);
+        var softResetRequest = SerialApiSoftResetRequest.Create();
+        SendCommand(softResetRequest);
 
         // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
         TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
@@ -69,14 +73,14 @@ public sealed class ZWaveStateMachine : IDisposable
         }
 
         // TODO: Implement better request/response pattern
-        var getControllerIdRequest = new DataFrame(DataFrameType.REQ, CommandId.GetControllerId);
-        SendFrame(getControllerIdRequest);
-        DataFrame? getControllerIdResponse = await WaitForCommandAsync(
+        var memoryGetIdRequest = MemoryGetIdRequest.Create();
+        SendCommand(memoryGetIdRequest);
+        DataFrame? memoryGetIdResponse = await WaitForCommandAsync(
             DataFrameType.RES,
-            CommandId.GetControllerId,
+            CommandId.MemoryGetId,
             TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
             cancellationToken).ConfigureAwait(false);
-        if (getControllerIdResponse == null)
+        if (memoryGetIdResponse == null)
         {
             // TODO: Fail in some better way
             throw new Exception();
@@ -85,8 +89,8 @@ public sealed class ZWaveStateMachine : IDisposable
         // TODO: Do something with the controller id response
 
         // TODO: Implement better request/response pattern
-        var getSerialCapabilitiesRequest = new DataFrame(DataFrameType.REQ, CommandId.GetSerialApiCapabilities);
-        SendFrame(getSerialCapabilitiesRequest);
+        var getSerialCapabilitiesRequest = GetSerialApiCapabilitiesRequest.Create();
+        SendCommand(getSerialCapabilitiesRequest);
         DataFrame? getSerialCapabilitiesResponse = await WaitForCommandAsync(
             DataFrameType.RES,
             CommandId.GetSerialApiCapabilities,
@@ -148,7 +152,7 @@ public sealed class ZWaveStateMachine : IDisposable
         // From INS12350 5.4.6
         // Data frame MUST be considered invalid if it is received with an invalid checksum.
         // A host or Z-Wave chip MUST return a NAK frame in response to an invalid Data frame.
-        if (!frame.IsChecksumValid)
+        if (!frame.IsChecksumValid())
         {
             _logger.LogSerialApiInvalidDataFrame(frame);
 
@@ -215,8 +219,11 @@ public sealed class ZWaveStateMachine : IDisposable
     private void SendFrame(DataFrame frame)
     {
         _logger.LogSerialApiDataFrameSent(frame);
-        frame.WriteToStream(_stream);
+        _stream.Write(frame.Data.Span);
     }
+
+    private void SendCommand(ICommand command)
+        => SendFrame(command.Frame);
 
     private async Task<DataFrame?> WaitForCommandAsync(DataFrameType type, CommandId commandId, TimeSpan timeout, CancellationToken cancellationToken)
     {

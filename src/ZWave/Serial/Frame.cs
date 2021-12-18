@@ -1,6 +1,6 @@
 ﻿namespace ZWave.Serial;
 
-public readonly struct Frame : IEquatable<Frame>
+internal readonly struct Frame : IEquatable<Frame>
 {
     public Frame(ReadOnlyMemory<byte> data)
     {

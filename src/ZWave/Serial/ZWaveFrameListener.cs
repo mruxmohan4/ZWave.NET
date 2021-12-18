@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ZWave.Serial;
 
-public sealed partial class ZWaveFrameListener : IDisposable
+internal sealed partial class ZWaveFrameListener : IDisposable
 {
     private readonly PipeReader _reader;
 

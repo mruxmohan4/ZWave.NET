@@ -1,85 +1,89 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
 
 namespace ZWave.Serial;
 
-public readonly struct DataFrame
+internal readonly struct DataFrame
 {
-    internal DataFrame(ReadOnlyMemory<byte> data)
+    public DataFrame(ReadOnlyMemory<byte> data)
     {
-        // No need to do any validations since this in internal. The caller is expected to only pass valid data.
+        if (data.Span[0] != FrameHeader.SOF)
+        {
+            throw new ArgumentException($"Data did not start with the SOF byte ({FrameHeader.SOF}). Found {data.Span[0]}", nameof(data));
+        }
 
-        // Index 0: SOF
-        // Index 1: Frame length
-        Type = (DataFrameType)data.Span[2];
-        CommandId = (CommandId)data.Span[3];
-        CommandParameters = data[4..^1];
+        if (data.Span[1] != data.Length - 2)
+        {
+            throw new ArgumentException($"Data did not have expected value for the length byte ({data.Length - 2}). Found {data.Span[1]}", nameof(data));
+        }
 
-        byte expectedChecksum = CalculateChecksum(data.Span);
-        int checksum = data.Span[data.Length - 1];
-        IsChecksumValid = checksum ==  expectedChecksum;
+        Data = data;
     }
 
-    public DataFrame(DataFrameType type, CommandId commandId)
-        : this(type, commandId, ReadOnlyMemory<byte>.Empty)
+    public ReadOnlyMemory<byte> Data { get; }
+
+    public DataFrameType Type => (DataFrameType)Data.Span[2];
+
+    public CommandId CommandId => (CommandId)Data.Span[3];
+
+    public ReadOnlyMemory<byte> CommandParameters => Data[4..^1];
+
+    public static DataFrame Create(DataFrameType type, CommandId commandId)
+        => Create(type, commandId, ReadOnlyMemory<byte>.Empty);
+
+    public static DataFrame Create(DataFrameType type, CommandId commandId, ReadOnlyMemory<byte> commandParameters)
     {
-    }
-
-    public DataFrame(DataFrameType type, CommandId commandId, ReadOnlyMemory<byte> commandParameters)
-    {
-        Type = type;
-        CommandId = commandId;
-        CommandParameters = commandParameters;
-
-        // We'll always produce a valid checksum for a data frame we create.
-        IsChecksumValid = true;
-    }
-
-    public DataFrameType Type { get; }
-
-    public CommandId CommandId { get; }
-
-    public ReadOnlyMemory<byte> CommandParameters { get; }
-
-    public bool IsChecksumValid { get; }
-
-    public void WriteToStream(Stream stream)
-    {
-        Span<byte> data = stackalloc byte[5 + CommandParameters.Length];
+        byte[] data = new byte[5 + commandParameters.Length];
         data[0] = FrameHeader.SOF;
         data[1] = (byte)(data.Length - 2); // Frame length does not include the SOF or Checksum
-        data[2] = (byte)Type;
-        data[3] = (byte)CommandId;
-        CommandParameters.Span.CopyTo(data[4..]);
+        data[2] = (byte)type;
+        data[3] = (byte)commandId;
+        commandParameters.Span.CopyTo(data[4..]);
         data[data.Length - 1] = CalculateChecksum(data);
+        return new DataFrame(data);
+    }
 
-        stream.Write(data);
+    public bool IsChecksumValid()
+    {
+        byte expectedChecksum = CalculateChecksum(Data.Span);
+        int checksum = Data.Span[Data.Length - 1];
+        return checksum == expectedChecksum;
     }
 
     public override string ToString()
     {
-        var sb = new StringBuilder();
-        sb.Append("DataFrame [Type=");
-        sb.Append(Type);
-        sb.Append(", CommandId=");
-        sb.Append(CommandId);
-        sb.Append(", CommandParameters=");
+        bool isChecksumValid = IsChecksumValid();
+
+        // These are manually counted
+        int literalLength = 48 + CommandParameters.Length;
+        int formattedCount = 2 + CommandParameters.Length;
+        if (!isChecksumValid)
+        {
+            literalLength += 17;
+        }
+
+        var handler = new DefaultInterpolatedStringHandler(literalLength, formattedCount);
+        handler.AppendLiteral("DataFrame [Type=");
+        handler.AppendFormatted(Type);
+        handler.AppendLiteral(", CommandId=");
+        handler.AppendFormatted(CommandId);
+        handler.AppendLiteral(", CommandParameters=");
         for (int i = 0; i < CommandParameters.Length; i++)
         {
             if (i > 0)
             {
-                sb.Append(' ');
+                handler.AppendLiteral(" ");
             }
 
-            sb.Append(CommandParameters.Span[i].ToString("x"));
+            handler.AppendFormatted(CommandParameters.Span[i].ToString("x"));
         }
 
-        if (!IsChecksumValid)
+        if (!isChecksumValid)
         {
-            sb.Append(", InvalidChecksum");
+            handler.AppendLiteral(", InvalidChecksum");
         }
 
-        sb.Append(']');
-        return sb.ToString();
+        handler.AppendLiteral("]");
+        return handler.ToStringAndClear();
     }
 
     private static byte CalculateChecksum(ReadOnlySpan<byte> data)

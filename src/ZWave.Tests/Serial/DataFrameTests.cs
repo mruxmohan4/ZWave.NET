@@ -21,7 +21,7 @@ public class DataFrameTests
         Assert.AreEqual(DataFrameType.REQ, dataFrame.Type);
         Assert.AreEqual(CommandId.SerialApiStarted, dataFrame.CommandId);
         Assert.IsTrue(dataFrame.CommandParameters.IsEmpty);
-        Assert.IsTrue(dataFrame.IsChecksumValid);
+        Assert.IsTrue(dataFrame.IsChecksumValid());
     }
 
     [TestMethod]
@@ -40,7 +40,7 @@ public class DataFrameTests
         Assert.AreEqual(DataFrameType.REQ, dataFrame.Type);
         Assert.AreEqual(CommandId.SerialApiStarted, dataFrame.CommandId);
         Assert.IsTrue(dataFrame.CommandParameters.IsEmpty);
-        Assert.IsFalse(dataFrame.IsChecksumValid);
+        Assert.IsFalse(dataFrame.IsChecksumValid());
     }
 
     [TestMethod]
@@ -63,6 +63,6 @@ public class DataFrameTests
         Assert.AreEqual(CommandId.SerialApiStarted, dataFrame.CommandId);
         Assert.AreEqual(3, dataFrame.CommandParameters.Length);
         Assert.IsTrue(dataFrame.CommandParameters.Span.SequenceEqual(new byte[] { 0x01, 0x02, 0x03 }));
-        Assert.IsTrue(dataFrame.IsChecksumValid);
+        Assert.IsTrue(dataFrame.IsChecksumValid());
     }
 }
