@@ -4,10 +4,19 @@
 /// The ids for various Serial API commands.
 /// </summary>
 /// <remarks>
-/// Spec: https://www.silabs.com/documents/public/user-guides/INS13954-Instruction-Z-Wave-500-Series-Appl-Programmers-Guide-v6_8x_0x.pdf
+/// Reference specs:
+/// https://www.silabs.com/documents/public/user-guides/INS12350-Serial-API-Host-Appl.-Prg.-Guide.pdf
+/// https://www.silabs.com/documents/public/user-guides/INS13954-Instruction-Z-Wave-500-Series-Appl-Programmers-Guide-v6_8x_0x.pdf
 /// </remarks>
 internal enum CommandId : byte
 {
+    /// <summary>
+    /// Determine Serial API protocol version number, Serial API capabilities, nodes currently
+    /// stored in the external NVM (only controllers) and chip used in a specific Serial API
+    /// Z-Wave Module.
+    /// </summary>
+    SerialApiGetInitData = 0x02,
+
     /// <summary>
     /// Generate the Node Information frame and to save information about node capabilities.
     /// </summary>
@@ -23,22 +32,35 @@ internal enum CommandId : byte
     /// </summary>
     GetControllerCapabilities = 0x05,
 
+    /// <summary>
+    /// Set the timeout in the Serial API
+    /// </summary>
+    SerialApiSetTimeouts = 0x06,
+
+    /// <summary>
+    /// Determine exactly which Serial API functions a specific Serial API Z-Wave Module supports
+    /// </summary>
     GetSerialApiCapabilities = 0x07,
 
     SerialApiSoftReset = 0x08,
 
+    /// <summary>
+    /// Transmit the data buffer using S2 multicast to a list of Z-Wave Nodes.
+    /// </summary>
+    SendDataMultiEx = 0x09,
+
     SerialApiStarted = 0x0a,
+
+    /// <summary>
+    /// Control the callback parameter list extension.
+    /// </summary>
+    SerialApiSetup = 0x0b,
 
     /// <summary>
     /// Notify the protocol of the command classes it supports using each security key.
     /// This function is only required in slave_routing and slave_enhanced_232 based applications.
     /// </summary>
     ApplicationSecureCommandsSupported = 0x0c,
-
-    /// <summary>
-    /// Transmit the data buffer using S2 multicast to a list of Z-Wave Nodes.
-    /// </summary>
-    SendDataMultiEx = 0x09,
 
     /// <summary>
     /// Power down the RF when not in use
@@ -79,6 +101,11 @@ internal enum CommandId : byte
     /// Set the power level used for RF transmission
     /// </summary>
     RFPowerLevelSet = 0x17,
+
+    /// <summary>
+    /// Overwrite the current neighbor information for a given node ID in the protocol locally
+    /// </summary>
+    SetRoutingInfo = 0x1b,
 
     /// <summary>
     /// Returns a random word using the 500 series built-in hardware random number generator 
@@ -188,6 +215,33 @@ internal enum CommandId : byte
     SetListenBeforeTalkThreshold = 0x3c,
 
     /// <summary>
+    /// Remove a specific node from a Z-Wave network.
+    /// </summary>
+    RemoveNodeIdFromNetwork = 0x3f,
+
+    /// <summary>
+    /// Return the Node Information Frame without command classes from the NVM for a given node ID.
+    /// </summary>
+    GetNodeProtocolInfo = 0x41,
+
+    /// <summary>
+    /// Set the Controller back to the factory default state.
+    /// </summary>
+    SetDefault = 0x42,
+
+    /// <summary>
+    /// Sends command completed to sending controller. Called in replication mode when a command from the 
+    /// sender has been processed and indicates that the controller is ready for next packet.
+    /// </summary>
+    ReplicationReceiveComplete = 0x44,
+
+    /// <summary>
+    /// Used when the controller is in replication mode. It sends the payload and expects the receiver to respond 
+    /// with a command complete message
+    /// </summary>
+    ReplicationSend = 0x45,
+
+    /// <summary>
     /// Assign static return routes (up to 4) to a Routing Slave or Enhanced 232 Slave node.
     /// </summary>
     AssignReturnRoute = 0x46,
@@ -198,6 +252,11 @@ internal enum CommandId : byte
     DeleteReturnRoute = 0x47,
 
     /// <summary>
+    /// Get the neighbors from the specified node.
+    /// </summary>
+    RequestNodeNeighborUpdate = 0x48,
+
+    /// <summary>
     /// Update local data structures or to control smart start inclusion
     /// </summary>
     ApplicationControllerUpdate = 0x49,
@@ -206,6 +265,16 @@ internal enum CommandId : byte
     /// Add a node to a Z-Wave network.
     /// </summary>
     AddNodeToNetwork = 0x4a,
+
+    /// <summary>
+    /// Remove a node from a Z-Wave network.
+    /// </summary>
+    RemoveNodeFromNetwork = 0x4b,
+
+    /// <summary>
+    /// (Obsolete) Add a controller to the Z-Wave network as a replacement for the old primary controller.
+    /// </summary>
+    CreateNewPrimaryController = 0x4c,
 
     /// <summary>
     /// Add a controller to the Z-Wave network and transfer the role as primary controller to it
@@ -219,10 +288,9 @@ internal enum CommandId : byte
     AssignPriorityReturnRoute = 0x4f,
 
     /// <summary>
-    /// Called when node have started inclusion/exclusion through ZW_NetworkLearnModeStart and node has 
-    /// been included, excluded or learnmode either failed or timed out.
+    /// Enable or disable home and node ID’s learn mode.
     /// </summary>
-    ApplicationNetworkLearnModeCompleted = 0x50,
+    SetLearnMode = 0x50,
 
     /// <summary>
     /// Notify presence of a SUC/SIS to a Routing Slave or Enhanced 232 Slave.
@@ -236,15 +304,45 @@ internal enum CommandId : byte
     RequestNetworkUpdate = 0x53,
 
     /// <summary>
+    /// Configure a static/bridge controller to be a SUC/SIS node or not.
+    /// </summary>
+    SetSucNodeId = 0x54,
+
+    /// <summary>
     /// Delete the return routes of the SUC/SIS node from a Routing Slave node or Enhanced 232 Slave node.
     /// </summary>
     DeleteSucReturnRoute = 0x55,
+
+    /// <summary>
+    /// Get the currently registered SUC/SIS node ID.
+    /// </summary>
+    GetSucNodeId = 0x56,
+
+    /// <summary>
+    /// Transmit SUC/SIS node ID from a primary controller or static controller to the controller node ID specified.
+    /// </summary>
+    SendSucId = 0x57,
 
     /// <summary>
     /// Assign a application defined Priority SUC Return Route to a routing or an enhanced slave that always 
     /// will be tried as the first return route attempt.
     /// </summary>
     AssignPrioritySucReturnRoute = 0x58,
+
+    /// <summary>
+    /// Request a SUC/SIS controller to update the requesting nodes neighbors.
+    /// </summary>
+    RediscoveryNeeded = 0x59,
+
+    /// <summary>
+    /// Request new return route destinations from the SUC/SIS node.
+    /// </summary>
+    RequestNewRouteDestinations = 0x5c,
+
+    /// <summary>
+    /// Check if the supplied nodeID is marked as being within direct range in any of the existing return routes.
+    /// </summary>
+    IsNodeWithinDirectRange = 0x5d,
 
     /// <summary>
     /// Initiate a Network-Wide Inclusion process
@@ -257,10 +355,55 @@ internal enum CommandId : byte
     ExploreRequestExclusion = 0x5f,
 
     /// <summary>
+    /// Request the Node Information Frame from a controller based node in the network.
+    /// </summary>
+    RequestNodeInfo = 0x60,
+
+    /// <summary>
+    /// Remove a non-responding node from the routing table in the requesting controller.
+    /// </summary>
+    RemoveFailedNode = 0x61,
+
+    /// <summary>
+    /// Test if a node ID is stored in the failed node ID list.
+    /// </summary>
+    IsFailedNode = 0x62,
+
+    /// <summary>
+    /// Replaces a non-responding node with a new one in the requesting controller.
+    /// </summary>
+    ReplaceFailedNode = 0x63,
+
+    /// <summary>
     /// The Firmware Update API provides functionality which together with the SDK supplied ZW_Bootloader 
     /// module and a big enough external NVM makes it possible to implement firmware update
     /// </summary>
     FirmwareUpdate = 0x78,
+
+    /// <summary>
+    /// Read out neighbor information from the protocol.
+    /// </summary>
+    GetRoutingInfo = 0x80,
+
+    /// <summary>
+    /// Returns the number of transmits that the protocol has done since last reset of the variable.
+    /// </summary>
+    GetTransmitCounter = 0x81,
+
+    /// <summary>
+    /// Reset the number of transmits that the protocol has done since last reset of the variable.
+    /// </summary>
+    ResetTransmitCounter = 0x82,
+
+    /// <summary>
+    /// Restore protocol node information from a backup.
+    /// </summary>
+    StoreNodeInfo = 0x83,
+
+    /// <summary>
+    /// Restore HomeID and NodeID information from a backup.
+    /// </summary>
+    StoreHomeId = 0x84,
 
     /// <summary>
     /// Locks or unlocks response route for a given node ID.
@@ -271,6 +414,11 @@ internal enum CommandId : byte
     /// Get the route with the highest priority
     /// </summary>
     GetPriorityRoute = 0x92,
+
+    /// <summary>
+    /// Set the Priority Routefor a destination node
+    /// </summary>
+    SetPriorityRoute = 0x93,
 
     /// <summary>
     /// Returns a bitmask of security keys the node posseses.
@@ -287,6 +435,28 @@ internal enum CommandId : byte
     /// Used to set node information for all Virtual Slave Nodes in the embedded module
     /// </summary>
     SerialApiApplicationSlaveNodeInformation = 0xa0,
+
+    /// <summary>
+    /// Create and transmit a Virtual Slave node “Node Information” frame a Virtual Slave node.
+    /// </summary>
+    SendSlaveNodeInformation = 0xa2,
+
+    /// <summary>
+    /// enables the possibility for enabling or disabling “Slave Learn Mode”, which when enabled
+    /// makes it possible for other controllers (primary or inclusion controllers) to add or remove
+    /// a Virtual Slave Node to the Z-Wave network.
+    /// </summary>
+    SetSlaveLearnMode = 0xa4,
+
+    /// <summary>
+    /// Request a buffer containing available Virtual Slave nodes in the Z-Wave network.
+    /// </summary>
+    GetVirtualNodes = 0xa5,
+
+    /// <summary>
+    /// Checks if a node is a Virtual Slave node.
+    /// </summary>
+    IsVirtualNode = 0xa6,
 
     /// <summary>
     /// Transmit the data buffer to a list of Z-Wave Nodes (multicast frame).
@@ -363,6 +533,11 @@ internal enum CommandId : byte
     /// Enable or disable promiscuous mode.
     /// </summary>
     SetPromiscuousMode = 0xd0,
+
+    /// <summary>
+    /// set the maximum number of source routing attempts before the next mechanism kicks-in.
+    /// </summary>
+    SetRoutingMax = 0xd4,
 
     /// <summary>
     /// Set the maximum interval between SmartStart inclusion requests
