@@ -2,7 +2,7 @@
 
 namespace ZWave.Commands;
 
-internal struct SerialApiSoftResetRequest : ICommand
+internal struct SerialApiSoftResetRequest : ICommand<SerialApiSoftResetRequest>
 {
     public SerialApiSoftResetRequest(DataFrame frame)
     {
@@ -20,4 +20,6 @@ internal struct SerialApiSoftResetRequest : ICommand
         var frame = DataFrame.Create(Type, CommandId);
         return new SerialApiSoftResetRequest(frame);
     }
+
+    public static SerialApiSoftResetRequest Create(DataFrame frame) => new SerialApiSoftResetRequest(frame);
 }

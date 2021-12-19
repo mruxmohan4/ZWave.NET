@@ -2,7 +2,7 @@
 
 namespace ZWave.Commands;
 
-internal struct GetSerialApiCapabilitiesResponse : ICommand
+internal struct GetSerialApiCapabilitiesResponse : ICommand<GetSerialApiCapabilitiesResponse>
 {
     public GetSerialApiCapabilitiesResponse(DataFrame frame)
     {
@@ -20,4 +20,6 @@ internal struct GetSerialApiCapabilitiesResponse : ICommand
         var frame = DataFrame.Create(Type, CommandId);
         return new GetSerialApiCapabilitiesResponse(frame);
     }
+
+    public static GetSerialApiCapabilitiesResponse Create(DataFrame frame) => new GetSerialApiCapabilitiesResponse(frame);
 }

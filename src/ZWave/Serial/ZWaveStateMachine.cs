@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 
 using Microsoft.Extensions.Logging;
 
@@ -57,12 +58,10 @@ public sealed class ZWaveStateMachine : IDisposable
 
         // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
         TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
-        DataFrame? frame = await WaitForCommandAsync(
-            DataFrameType.REQ,
-            CommandId.SerialApiStarted,
+        SerialApiStartedRequest? command = await WaitForCommandAsync<SerialApiStartedRequest>(
             serialApiStartedWaitTime,
             cancellationToken).ConfigureAwait(false);
-        if (frame == null)
+        if (command == null)
         {
             // TODO: Try reconnecting the port (uh oh), and then wait for
             // SerialApiStarted again (5 sec [configureable] timeout), then check if the
@@ -72,13 +71,9 @@ public sealed class ZWaveStateMachine : IDisposable
             throw new Exception();
         }
 
-        // TODO: Implement better request/response pattern
         var memoryGetIdRequest = MemoryGetIdRequest.Create();
-        SendCommand(memoryGetIdRequest);
-        DataFrame? memoryGetIdResponse = await WaitForCommandAsync(
-            DataFrameType.RES,
-            CommandId.MemoryGetId,
-            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+        MemoryGetIdResponse? memoryGetIdResponse = await SendRequestCommandAsync<MemoryGetIdRequest, MemoryGetIdResponse>(
+            memoryGetIdRequest, 
             cancellationToken).ConfigureAwait(false);
         if (memoryGetIdResponse == null)
         {
@@ -86,15 +81,11 @@ public sealed class ZWaveStateMachine : IDisposable
             throw new Exception();
         }
 
-        // TODO: Do something with the controller id response
+        // TODO: Do something with the memoryGetIdResponse
 
-        // TODO: Implement better request/response pattern
         var getSerialCapabilitiesRequest = GetSerialApiCapabilitiesRequest.Create();
-        SendCommand(getSerialCapabilitiesRequest);
-        DataFrame? getSerialCapabilitiesResponse = await WaitForCommandAsync(
-            DataFrameType.RES,
-            CommandId.GetSerialApiCapabilities,
-            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+        GetSerialApiCapabilitiesResponse? getSerialCapabilitiesResponse = await SendRequestCommandAsync<GetSerialApiCapabilitiesRequest, GetSerialApiCapabilitiesResponse>(
+            getSerialCapabilitiesRequest,
             cancellationToken).ConfigureAwait(false);
         if (getSerialCapabilitiesResponse == null)
         {
@@ -222,21 +213,39 @@ public sealed class ZWaveStateMachine : IDisposable
         _stream.Write(frame.Data.Span);
     }
 
-    private void SendCommand(ICommand command)
+    private void SendCommand<TCommand>(ICommand<TCommand> command)
+        where TCommand : struct, ICommand<TCommand>
         => SendFrame(command.Frame);
 
-    private async Task<DataFrame?> WaitForCommandAsync(DataFrameType type, CommandId commandId, TimeSpan timeout, CancellationToken cancellationToken)
+    private async Task<TCommand?> WaitForCommandAsync<TCommand>(
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+        where TCommand : struct, ICommand<TCommand>
     {
         TaskCompletionSource<DataFrame> taskCompletionSource = new TaskCompletionSource<DataFrame>();
-        _awaitedCommands.Add(new AwaitedCommand(type, commandId, taskCompletionSource));
+        _awaitedCommands.Add(new AwaitedCommand(TCommand.Type, TCommand.CommandId, taskCompletionSource));
 
         try
         {
-            return await taskCompletionSource.Task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+            var dataFrame = await taskCompletionSource.Task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+            return TCommand.Create(dataFrame);
         }
         catch (TimeoutException)
         {
             return null;
         }
+    }
+
+    private async Task<TResponse?> SendRequestCommandAsync<TRequest, TResponse>(
+        ICommand<TRequest> request,
+        CancellationToken cancellationToken)
+        where TRequest : struct, ICommand<TRequest>
+        where TResponse : struct, ICommand<TResponse>
+    {
+        SendCommand(request);
+
+        return await WaitForCommandAsync<TResponse>(
+            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+            cancellationToken).ConfigureAwait(false);
     }
 }

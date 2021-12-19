@@ -2,7 +2,7 @@
 
 namespace ZWave.Commands;
 
-internal struct MemoryGetIdResponse : ICommand
+internal struct MemoryGetIdResponse : ICommand<MemoryGetIdResponse>
 {
     public MemoryGetIdResponse(DataFrame frame)
     {
@@ -24,4 +24,6 @@ internal struct MemoryGetIdResponse : ICommand
         var frame = DataFrame.Create(Type, CommandId);
         return new MemoryGetIdResponse(frame);
     }
+
+    public static MemoryGetIdResponse Create(DataFrame frame) => new MemoryGetIdResponse(frame);
 }

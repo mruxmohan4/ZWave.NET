@@ -42,6 +42,9 @@ internal enum CommandId : byte
     /// </summary>
     GetSerialApiCapabilities = 0x07,
 
+    /// <summary>
+    /// Request the Z-Wave Module to perform a soft reset
+    /// </summary>
     SerialApiSoftReset = 0x08,
 
     /// <summary>
@@ -49,6 +52,9 @@ internal enum CommandId : byte
     /// </summary>
     SendDataMultiEx = 0x09,
 
+    /// <summary>
+    /// Used by the Z-Wave Module to indicate that it is ready to be operated after a reboot or reset operation.
+    /// </summary>
     SerialApiStarted = 0x0a,
 
     /// <summary>
@@ -543,4 +549,19 @@ internal enum CommandId : byte
     /// Set the maximum interval between SmartStart inclusion requests
     /// </summary>
     NetworkManagementSetMaxInclusionRequestIntervals = 0xd6,
+
+    /// <summary>
+    /// Obtain the list of Long Range nodes
+    /// </summary>
+    SerialApiGetLongRangeNodes = 0xda,
+
+    /// <summary>
+    /// Get the DCDC Configuration
+    /// </summary>
+    GetDcdcConfig = 0xde,
+
+    /// <summary>
+    /// Set the DCDC Configuration
+    /// </summary>
+    SetDcdcConfig = 0xdf,
 }
