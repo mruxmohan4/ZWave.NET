@@ -62,8 +62,8 @@ internal static partial class Logging
     [LoggerMessage(
         EventId = 9,
         Level = LogLevel.Information,
-        Message = "Initialization sequence starting")]
-    public static partial void LogInitializing(this ILogger logger);
+        Message = "Driver initialization sequence starting")]
+    public static partial void LogDriverInitializing(this ILogger logger);
 
     [LoggerMessage(
         EventId = 10,
@@ -74,6 +74,39 @@ internal static partial class Logging
     [LoggerMessage(
         EventId = 11,
         Level = LogLevel.Information,
-        Message = "Initialization sequence complete")]
-    public static partial void LogInitialized(this ILogger logger);
+        Message = "Driver initialization sequence complete")]
+    public static partial void LogDriverInitialized(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 12,
+        Level = LogLevel.Debug,
+        Message = "Identifying controller")]
+    public static partial void LogControllerIdentifying(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 13,
+        Level = LogLevel.Information,
+        Message = "Controller identity:\n" +
+        "Home ID = {homeId}\n" +
+        "Node ID = {nodeId}")]
+    public static partial void LogControllerIdentity(this ILogger logger, uint homeId, byte nodeId);
+
+    [LoggerMessage(
+        EventId = 14,
+        Level = LogLevel.Information,
+        Message = "Controller capabilities:\n" +
+        "Serial API Version = {serialApiVersion}\n" +
+        "Serial API Revision = {serialApiRevision}\n" +
+        "Manufacturer ID = {manufacturerId}\n" +
+        "Product type = {productType}\n" +
+        "Product ID = {productId}\n" +
+        "Supported Commands = {supportedCommands}")]
+    public static partial void LogControllerCapabilities(
+        this ILogger logger,
+        byte serialApiVersion,
+        byte serialApiRevision,
+        ushort manufacturerId,
+        ushort productType,
+        ushort productId,
+        string supportedCommands);
 }

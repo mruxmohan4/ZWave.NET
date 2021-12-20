@@ -1,13 +1,10 @@
-﻿using System.IO;
-using System.Threading;
-
-using Microsoft.Extensions.Logging;
-
+﻿using Microsoft.Extensions.Logging;
 using ZWave.Commands;
+using ZWave.Serial;
 
-namespace ZWave.Serial;
+namespace ZWave;
 
-public sealed class ZWaveStateMachine : IDisposable
+public sealed class Driver : IDisposable
 {
     private record struct AwaitedCommand(DataFrameType Type, CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
 
@@ -16,42 +13,55 @@ public sealed class ZWaveStateMachine : IDisposable
     private readonly Stream _stream;
 
     private readonly ZWaveFrameListener _listener;
+    
+    private readonly Controller _controller;
 
     private readonly List<AwaitedCommand> _awaitedCommands = new List<AwaitedCommand>();
 
-    private State _state;
-
-    public ZWaveStateMachine(ILogger logger, Stream stream)
+    private Driver(ILogger logger, Stream stream)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
         _listener = new ZWaveFrameListener(logger, stream, ProcessFrame);
-        _state = State.Uninitialized;
+        _controller = new Controller(logger, this);
     }
 
-    private enum State
+    public static async Task<Driver> CreateAsync(
+        ILogger logger,
+        string portName,
+        CancellationToken cancellationToken)
     {
-        Uninitialized,
-        Initializing,
-        Idle
+        var stream = new ZWaveSerialPortStream(logger, portName);
+        var driver = new Driver(logger, stream);
+        await driver.InitializeAsync(cancellationToken).ConfigureAwait(false);
+
+        return driver;
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken)
+    public void Dispose()
     {
-        if (_state != State.Uninitialized)
-        {
-            throw new InvalidOperationException("The state machine is already initialized");
-        }
+        _listener.Dispose();
+        _stream.Dispose();
+    }
 
-        _state = State.Initializing;
-        _logger.LogInitializing();
+    private async Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogDriverInitializing();
 
         // Perform initialization sequence (INS12350 6.1)
         await _stream.WriteAsync(Frame.NAK.Data, cancellationToken).ConfigureAwait(false);
 
         // TODO: how do we know whether we should soft or hard reset?
 
-        // Soft reset
+        await SoftResetAsync(cancellationToken).ConfigureAwait(false);
+
+        await _controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
+
+        _logger.LogDriverInitialized();
+    }
+
+    private async Task SoftResetAsync(CancellationToken cancellationToken)
+    {
         _logger.LogSoftReset();
         var softResetRequest = SerialApiSoftResetRequest.Create();
         SendCommand(softResetRequest);
@@ -67,41 +77,8 @@ public sealed class ZWaveStateMachine : IDisposable
             // SerialApiStarted again (5 sec [configureable] timeout), then check if the
             // controller responds to some arbirary command (GetControllerVersion?).
             // Retry a few times.
-            // TODO: Fail in some better way
-            throw new Exception();
+            throw new ZWaveException(ZWaveErrorCode.DriverInitializationFailed, "Soft reset failed");
         }
-
-        var memoryGetIdRequest = MemoryGetIdRequest.Create();
-        MemoryGetIdResponse? memoryGetIdResponse = await SendRequestCommandAsync<MemoryGetIdRequest, MemoryGetIdResponse>(
-            memoryGetIdRequest, 
-            cancellationToken).ConfigureAwait(false);
-        if (memoryGetIdResponse == null)
-        {
-            // TODO: Fail in some better way
-            throw new Exception();
-        }
-
-        // TODO: Do something with the memoryGetIdResponse
-
-        var getSerialCapabilitiesRequest = GetSerialApiCapabilitiesRequest.Create();
-        GetSerialApiCapabilitiesResponse? getSerialCapabilitiesResponse = await SendRequestCommandAsync<GetSerialApiCapabilitiesRequest, GetSerialApiCapabilitiesResponse>(
-            getSerialCapabilitiesRequest,
-            cancellationToken).ConfigureAwait(false);
-        if (getSerialCapabilitiesResponse == null)
-        {
-            // TODO: Fail in some better way
-            throw new Exception();
-        }
-
-        // TODO: Do something with the serial api capabilities
-
-        _logger.LogInitialized();
-        _state = State.Idle;
-    }
-
-    public void Dispose()
-    {
-        _listener.Dispose();
     }
 
     private void ProcessFrame(Frame frame)
@@ -200,22 +177,18 @@ public sealed class ZWaveStateMachine : IDisposable
         // TODO
     }
 
-    private void SendFrame(Frame frame)
+    internal async Task<TResponse?> SendRequestCommandAsync<TRequest, TResponse>(
+        ICommand<TRequest> request,
+        CancellationToken cancellationToken)
+        where TRequest : struct, ICommand<TRequest>
+        where TResponse : struct, ICommand<TResponse>
     {
-        // TODO: Make async? Frames are pretty small, so maybe not?
-        _logger.LogSerialApiFrameSent(frame);
-        _stream.Write(frame.Data.Span);
-    }
+        SendCommand(request);
 
-    private void SendFrame(DataFrame frame)
-    {
-        _logger.LogSerialApiDataFrameSent(frame);
-        _stream.Write(frame.Data.Span);
+        return await WaitForCommandAsync<TResponse>(
+            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+            cancellationToken).ConfigureAwait(false);
     }
-
-    private void SendCommand<TCommand>(ICommand<TCommand> command)
-        where TCommand : struct, ICommand<TCommand>
-        => SendFrame(command.Frame);
 
     private async Task<TCommand?> WaitForCommandAsync<TCommand>(
         TimeSpan timeout,
@@ -236,16 +209,20 @@ public sealed class ZWaveStateMachine : IDisposable
         }
     }
 
-    private async Task<TResponse?> SendRequestCommandAsync<TRequest, TResponse>(
-        ICommand<TRequest> request,
-        CancellationToken cancellationToken)
-        where TRequest : struct, ICommand<TRequest>
-        where TResponse : struct, ICommand<TResponse>
-    {
-        SendCommand(request);
+    private void SendCommand<TCommand>(ICommand<TCommand> command)
+        where TCommand : struct, ICommand<TCommand>
+        => SendFrame(command.Frame);
 
-        return await WaitForCommandAsync<TResponse>(
-            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
-            cancellationToken).ConfigureAwait(false);
+    private void SendFrame(DataFrame frame)
+    {
+        _logger.LogSerialApiDataFrameSent(frame);
+        _stream.Write(frame.Data.Span);
+    }
+
+    private void SendFrame(Frame frame)
+    {
+        // TODO: Make async? Frames are pretty small, so maybe not?
+        _logger.LogSerialApiFrameSent(frame);
+        _stream.Write(frame.Data.Span);
     }
 }

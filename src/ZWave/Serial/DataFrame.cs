@@ -74,7 +74,7 @@ internal readonly struct DataFrame
                 handler.AppendLiteral(" ");
             }
 
-            handler.AppendFormatted(CommandParameters.Span[i].ToString("x"));
+            handler.AppendFormatted(CommandParameters.Span[i], "x");
         }
 
         if (!isChecksumValid)
