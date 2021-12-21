@@ -37,6 +37,14 @@ internal sealed class Controller
 
     public HashSet<CommandId>? SupportedCommandIds { get; private set; }
 
+    public string? LibraryVersion { get; private set; }
+
+    public VersionLibraryType LibraryType { get; private set; }
+
+    public ControllerCapabilities Capabilities { get; private set; }
+
+    public HashSet<SerialApiSetupSubcommand>? SupportedSerialApiSetupSubcommands { get; private set; }
+
     public async Task IdentifyAsync(CancellationToken cancellationToken)
     {
         var memoryGetIdRequest = MemoryGetIdRequest.Create();
@@ -68,13 +76,84 @@ internal sealed class Controller
         ProductId = getSerialCapabilitiesResponse.Value.ManufacturerProductId;
         SupportedCommandIds = getSerialCapabilitiesResponse.Value.SupportedCommandIds;
 
-        _logger.LogControllerCapabilities(
+        _logger.LogSerialApiCapabilities(
             SerialApiVersion,
             SerialApiRevision,
             ManufacturerId,
             ProductType,
             ProductId,
             FormatCommandIds(SupportedCommandIds));
+
+        var versionRequest = VersionRequest.Create();
+        VersionResponse? versionResponse = await _driver.SendRequestCommandAsync<VersionRequest, VersionResponse>(
+            versionRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (versionResponse == null)
+        {
+            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "Version request timed out");
+        }
+
+        LibraryVersion = versionResponse.Value.LibraryVersion;
+        LibraryType = versionResponse.Value.LibraryType;
+        _logger.LogControllerLibraryVersion(LibraryVersion, LibraryType);
+
+        var getControllerCapabilitiesRequest = GetControllerCapabilitiesRequest.Create();
+        GetControllerCapabilitiesResponse? getControllerCapabilitiesResponse = await _driver.SendRequestCommandAsync<GetControllerCapabilitiesRequest, GetControllerCapabilitiesResponse>(
+            getControllerCapabilitiesRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (getControllerCapabilitiesResponse == null)
+        {
+            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "GetControllerCapabilities request timed out");
+        }
+
+        Capabilities = getControllerCapabilitiesResponse.Value.Capabilities;
+        _logger.LogControllerCapabilities(Capabilities);
+
+        if (SupportedCommandIds.Contains(SerialApiSetupRequest.CommandId))
+        {
+            var getSupportedSetupCommandsRequest = SerialApiSetupRequest.GetSupportedCommands();
+            SerialApiSetupGetSupportedCommandsResponse? getSupportedSetupCommandsResponse = await _driver.SendRequestCommandAsync<SerialApiSetupRequest, SerialApiSetupGetSupportedCommandsResponse>(
+                getSupportedSetupCommandsRequest,
+                cancellationToken).ConfigureAwait(false);
+            if (getSupportedSetupCommandsResponse == null)
+            {
+                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.GetSupportedCommands request timed out");
+            }
+
+            // The command was supported and this subcommand should always be supported, so this should never happen in practice.
+            if (!getSupportedSetupCommandsResponse.Value.WasSubcommandSupported)
+            {
+                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.GetSupportedCommands was not supported");
+            }
+
+            SupportedSerialApiSetupSubcommands = getSupportedSetupCommandsResponse.Value.SupportedSubcommands;
+        }
+        else
+        {
+            SupportedSerialApiSetupSubcommands = new HashSet<SerialApiSetupSubcommand>(0);
+        }
+
+        _logger.LogControllerSupportedSerialApiSetupSubcommands(FormatSerialApiSetupSubcommands(SupportedSerialApiSetupSubcommands));
+
+        if (SupportedSerialApiSetupSubcommands.Contains(SerialApiSetupSubcommand.SetTxStatusReport))
+        {
+            var setTxStatusReportRequest = SerialApiSetupRequest.SetTxStatusReport(enable: true);
+            SerialApiSetupSetTxStatusReportResponse? setTxStatusReportResponse = await _driver.SendRequestCommandAsync<SerialApiSetupRequest, SerialApiSetupSetTxStatusReportResponse>(
+                setTxStatusReportRequest,
+                cancellationToken).ConfigureAwait(false);
+            if (setTxStatusReportResponse == null)
+            {
+                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.SetTxStatusReport request timed out");
+            }
+
+            // We checked that this was supported, so this should never happen in practice.
+            if (!setTxStatusReportResponse.Value.WasSubcommandSupported)
+            {
+                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.SetTxStatusReport was not supported");
+            }
+
+            _logger.LogEnableTxStatusReport(setTxStatusReportResponse.Value.Success);
+        }
     }
 
     private string FormatCommandIds(HashSet<CommandId> commandIds)
@@ -95,6 +174,30 @@ internal sealed class Controller
             isFirst = false;
 
             handler.AppendFormatted(commandId);
+        }
+
+        handler.AppendLiteral("]");
+        return handler.ToStringAndClear();
+    }
+
+    private string FormatSerialApiSetupSubcommands(HashSet<SerialApiSetupSubcommand> subcommands)
+    {
+        int literalLength = subcommands.Count * 2;
+        int formattedCount = subcommands.Count;
+
+        var handler = new DefaultInterpolatedStringHandler(literalLength, formattedCount);
+        handler.AppendLiteral("[");
+        bool isFirst = true;
+        foreach (SerialApiSetupSubcommand subcommand in subcommands)
+        {
+            if (!isFirst)
+            {
+                handler.AppendLiteral(", ");
+            }
+
+            isFirst = false;
+
+            handler.AppendFormatted(subcommand);
         }
 
         handler.AppendLiteral("]");

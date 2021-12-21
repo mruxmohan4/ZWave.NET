@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+
+using ZWave.Commands;
 using ZWave.Serial;
 
 namespace ZWave;
@@ -94,14 +96,14 @@ internal static partial class Logging
     [LoggerMessage(
         EventId = 14,
         Level = LogLevel.Information,
-        Message = "Controller capabilities:\n" +
+        Message = "Serial API capabilities:\n" +
         "Serial API Version = {serialApiVersion}\n" +
         "Serial API Revision = {serialApiRevision}\n" +
         "Manufacturer ID = {manufacturerId}\n" +
         "Product type = {productType}\n" +
         "Product ID = {productId}\n" +
         "Supported Commands = {supportedCommands}")]
-    public static partial void LogControllerCapabilities(
+    public static partial void LogSerialApiCapabilities(
         this ILogger logger,
         byte serialApiVersion,
         byte serialApiRevision,
@@ -109,4 +111,30 @@ internal static partial class Logging
         ushort productType,
         ushort productId,
         string supportedCommands);
+
+    [LoggerMessage(
+        EventId = 15,
+        Level = LogLevel.Information,
+        Message = "Controller library:\n" +
+        "Library version = {libraryVersion}\n" +
+        "Library type = {libraryType}")]
+    public static partial void LogControllerLibraryVersion(this ILogger logger, string libraryVersion, VersionLibraryType libraryType);
+
+    [LoggerMessage(
+        EventId = 16,
+        Level = LogLevel.Information,
+        Message = "Controller capabilities: {controllerCapabilities}")]
+    public static partial void LogControllerCapabilities(this ILogger logger, ControllerCapabilities controllerCapabilities);
+
+    [LoggerMessage(
+        EventId = 17,
+        Level = LogLevel.Information,
+        Message = "Supported Serial API Setup subcommands: {supportedSubcommands}")]
+    public static partial void LogControllerSupportedSerialApiSetupSubcommands(this ILogger logger, string supportedSubcommands);
+
+    [LoggerMessage(
+        EventId = 18,
+        Level = LogLevel.Debug,
+        Message = "Enabling TX status report success: {success}")]
+    public static partial void LogEnableTxStatusReport(this ILogger logger, bool success);
 }

@@ -77,11 +77,5 @@ internal struct GetSerialApiCapabilitiesResponse : ICommand<GetSerialApiCapabili
         }
     }
 
-    public static GetSerialApiCapabilitiesResponse Create()
-    {
-        var frame = DataFrame.Create(Type, CommandId);
-        return new GetSerialApiCapabilitiesResponse(frame);
-    }
-
     public static GetSerialApiCapabilitiesResponse Create(DataFrame frame) => new GetSerialApiCapabilitiesResponse(frame);
 }

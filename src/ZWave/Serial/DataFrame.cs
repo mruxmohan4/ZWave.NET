@@ -28,16 +28,16 @@ internal readonly struct DataFrame
     public ReadOnlyMemory<byte> CommandParameters => Data[4..^1];
 
     public static DataFrame Create(DataFrameType type, CommandId commandId)
-        => Create(type, commandId, ReadOnlyMemory<byte>.Empty);
+        => Create(type, commandId, ReadOnlySpan<byte>.Empty);
 
-    public static DataFrame Create(DataFrameType type, CommandId commandId, ReadOnlyMemory<byte> commandParameters)
+    public static DataFrame Create(DataFrameType type, CommandId commandId, ReadOnlySpan<byte> commandParameters)
     {
         byte[] data = new byte[5 + commandParameters.Length];
         data[0] = FrameHeader.SOF;
         data[1] = (byte)(data.Length - 2); // Frame length does not include the SOF or Checksum
         data[2] = (byte)type;
         data[3] = (byte)commandId;
-        commandParameters.Span.CopyTo(data[4..]);
+        commandParameters.CopyTo(data[4..]);
         data[data.Length - 1] = CalculateChecksum(data);
         return new DataFrame(data);
     }
