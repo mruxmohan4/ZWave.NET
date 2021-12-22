@@ -137,4 +137,10 @@ internal static partial class Logging
         Level = LogLevel.Debug,
         Message = "Enabling TX status report success: {success}")]
     public static partial void LogEnableTxStatusReport(this ILogger logger, bool success);
+
+    [LoggerMessage(
+        EventId = 19,
+        Level = LogLevel.Debug,
+        Message = "SUC Node Id: {sucNodeId}")]
+    public static partial void LogControllerSucNodeId(this ILogger logger, byte sucNodeId);
 }

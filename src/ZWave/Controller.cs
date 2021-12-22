@@ -45,6 +45,8 @@ internal sealed class Controller
 
     public HashSet<SerialApiSetupSubcommand>? SupportedSerialApiSetupSubcommands { get; private set; }
 
+    public byte SucNodeId { get; private set; }
+
     public async Task IdentifyAsync(CancellationToken cancellationToken)
     {
         var memoryGetIdRequest = MemoryGetIdRequest.Create();
@@ -153,6 +155,43 @@ internal sealed class Controller
             }
 
             _logger.LogEnableTxStatusReport(setTxStatusReportResponse.Value.Success);
+        }
+
+        var getSucNodeIdRequest = GetSucNodeIdRequest.Create();
+        GetSucNodeIdResponse? getSucNodeIdResponse = await _driver.SendRequestCommandAsync<GetSucNodeIdRequest, GetSucNodeIdResponse>(
+            getSucNodeIdRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (getSucNodeIdResponse == null)
+        {
+            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "GetSucNodeId request timed out");
+        }
+
+        SucNodeId = getSucNodeIdResponse.Value.SucNodeId;
+        _logger.LogControllerSucNodeId(SucNodeId);
+
+        // If there is no SUC/SIS and we're not a SUC or secondard controller, promote ourselves
+        if (SucNodeId == 0
+            && !Capabilities.HasFlag(ControllerCapabilities.SecondaryController)
+            && !Capabilities.HasFlag(ControllerCapabilities.SucEnabled)
+            && !Capabilities.HasFlag(ControllerCapabilities.SisIsPresent))
+        {
+            var setSucNodeIdSessionId = _driver.GetNextSessionId();
+            var setSucNodeIdRequest = SetSucNodeIdRequest.Create(
+                SucNodeId,
+                enableSuc: true,
+                SetSucNodeIdRequestCapabilities.SucFuncNodeIdServer,
+                TransmissionOptions.ACK | TransmissionOptions.AutoRoute | TransmissionOptions.Explore,
+                setSucNodeIdSessionId);
+            (SetSucNodeIdResponse, SetSucNodeIdRequest)? responseAndCallback = await _driver.SendRequestCommandWithCallbackAsync<SetSucNodeIdRequest, SetSucNodeIdResponse>(
+                setSucNodeIdRequest,
+                cancellationToken).ConfigureAwait(false);
+            if (!responseAndCallback.HasValue)
+            {
+                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SetSucNodeId request timed out");
+            }
+
+            (SetSucNodeIdResponse response, SetSucNodeIdRequest callback) = responseAndCallback.Value;
+            // TODO: Use these
         }
     }
 

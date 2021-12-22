@@ -18,6 +18,8 @@ public sealed class Driver : IDisposable
 
     private readonly List<AwaitedCommand> _awaitedCommands = new List<AwaitedCommand>();
 
+    private byte _lastSessionId = 0;
+
     private Driver(ILogger logger, Stream stream)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -175,6 +177,50 @@ public sealed class Driver : IDisposable
         }
 
         // TODO
+    }
+
+    internal byte GetNextSessionId()
+    {
+        // TODO: Thread-safety?
+        byte nextSessionId = _lastSessionId;
+
+        nextSessionId++;
+
+        // Avoid 0
+        if (nextSessionId == 0)
+        {
+            nextSessionId++;
+        }
+
+        _lastSessionId = nextSessionId;
+        return nextSessionId;
+    }
+
+    // TODO: This is super awkward
+    internal async Task<(TResponse Response, TRequest Callback)?> SendRequestCommandWithCallbackAsync<TRequest, TResponse>(
+        ICommand<TRequest> request,
+        CancellationToken cancellationToken)
+        where TRequest : struct, ICommand<TRequest>
+        where TResponse : struct, ICommand<TResponse>
+    {
+        TResponse? response = await SendRequestCommandAsync<TRequest, TResponse>(request, cancellationToken);
+        if (!response.HasValue)
+        {
+            return null;
+        }
+
+        // TODO: Validate the response?
+
+        // TODO: Check session ids
+        TRequest? callback = await WaitForCommandAsync<TRequest>(
+            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+            cancellationToken).ConfigureAwait(false);
+        if (!callback.HasValue)
+        {
+            return null;
+        }
+
+        return (response.Value, callback.Value);
     }
 
     internal async Task<TResponse?> SendRequestCommandAsync<TRequest, TResponse>(
