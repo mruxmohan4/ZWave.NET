@@ -33,6 +33,8 @@ internal sealed partial class ZWaveFrameListener : IDisposable
 
         _reader = PipeReader.Create(stream, new StreamPipeReaderOptions(leaveOpen: true));
         _cancellationTokenSource = new CancellationTokenSource();
+
+        // Note: Since we're starting out own task, we don't need to ConfigureAwait anywhere dowstream.
         Task.Run(() => ReadAsync(logger, _reader, frameHandler, _cancellationTokenSource.Token));
     }
 
@@ -50,7 +52,7 @@ internal sealed partial class ZWaveFrameListener : IDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            ReadResult readResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            ReadResult readResult = await reader.ReadAsync(cancellationToken);
             ReadOnlySequence<byte> buffer = readResult.Buffer;
 
             if (readResult.IsCanceled)

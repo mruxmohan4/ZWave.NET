@@ -50,7 +50,7 @@ internal sealed class Controller
     public async Task IdentifyAsync(CancellationToken cancellationToken)
     {
         var memoryGetIdRequest = MemoryGetIdRequest.Create();
-        MemoryGetIdResponse? memoryGetIdResponse = await _driver.SendRequestCommandAsync<MemoryGetIdRequest, MemoryGetIdResponse>(
+        MemoryGetIdResponse? memoryGetIdResponse = await _driver.SendCommandAsync<MemoryGetIdRequest, MemoryGetIdResponse>(
             memoryGetIdRequest,
             cancellationToken).ConfigureAwait(false);
         if (memoryGetIdResponse == null)
@@ -63,7 +63,7 @@ internal sealed class Controller
         _logger.LogControllerIdentity(HomeId, NodeId);
 
         var getSerialCapabilitiesRequest = GetSerialApiCapabilitiesRequest.Create();
-        GetSerialApiCapabilitiesResponse? getSerialCapabilitiesResponse = await _driver.SendRequestCommandAsync<GetSerialApiCapabilitiesRequest, GetSerialApiCapabilitiesResponse>(
+        GetSerialApiCapabilitiesResponse? getSerialCapabilitiesResponse = await _driver.SendCommandAsync<GetSerialApiCapabilitiesRequest, GetSerialApiCapabilitiesResponse>(
             getSerialCapabilitiesRequest,
             cancellationToken).ConfigureAwait(false);
         if (getSerialCapabilitiesResponse == null)
@@ -87,7 +87,7 @@ internal sealed class Controller
             FormatCommandIds(SupportedCommandIds));
 
         var versionRequest = VersionRequest.Create();
-        VersionResponse? versionResponse = await _driver.SendRequestCommandAsync<VersionRequest, VersionResponse>(
+        VersionResponse? versionResponse = await _driver.SendCommandAsync<VersionRequest, VersionResponse>(
             versionRequest,
             cancellationToken).ConfigureAwait(false);
         if (versionResponse == null)
@@ -100,7 +100,7 @@ internal sealed class Controller
         _logger.LogControllerLibraryVersion(LibraryVersion, LibraryType);
 
         var getControllerCapabilitiesRequest = GetControllerCapabilitiesRequest.Create();
-        GetControllerCapabilitiesResponse? getControllerCapabilitiesResponse = await _driver.SendRequestCommandAsync<GetControllerCapabilitiesRequest, GetControllerCapabilitiesResponse>(
+        GetControllerCapabilitiesResponse? getControllerCapabilitiesResponse = await _driver.SendCommandAsync<GetControllerCapabilitiesRequest, GetControllerCapabilitiesResponse>(
             getControllerCapabilitiesRequest,
             cancellationToken).ConfigureAwait(false);
         if (getControllerCapabilitiesResponse == null)
@@ -114,7 +114,7 @@ internal sealed class Controller
         if (SupportedCommandIds.Contains(SerialApiSetupRequest.CommandId))
         {
             var getSupportedSetupCommandsRequest = SerialApiSetupRequest.GetSupportedCommands();
-            SerialApiSetupGetSupportedCommandsResponse? getSupportedSetupCommandsResponse = await _driver.SendRequestCommandAsync<SerialApiSetupRequest, SerialApiSetupGetSupportedCommandsResponse>(
+            SerialApiSetupGetSupportedCommandsResponse? getSupportedSetupCommandsResponse = await _driver.SendCommandAsync<SerialApiSetupRequest, SerialApiSetupGetSupportedCommandsResponse>(
                 getSupportedSetupCommandsRequest,
                 cancellationToken).ConfigureAwait(false);
             if (getSupportedSetupCommandsResponse == null)
@@ -140,7 +140,7 @@ internal sealed class Controller
         if (SupportedSerialApiSetupSubcommands.Contains(SerialApiSetupSubcommand.SetTxStatusReport))
         {
             var setTxStatusReportRequest = SerialApiSetupRequest.SetTxStatusReport(enable: true);
-            SerialApiSetupSetTxStatusReportResponse? setTxStatusReportResponse = await _driver.SendRequestCommandAsync<SerialApiSetupRequest, SerialApiSetupSetTxStatusReportResponse>(
+            SerialApiSetupSetTxStatusReportResponse? setTxStatusReportResponse = await _driver.SendCommandAsync<SerialApiSetupRequest, SerialApiSetupSetTxStatusReportResponse>(
                 setTxStatusReportRequest,
                 cancellationToken).ConfigureAwait(false);
             if (setTxStatusReportResponse == null)
@@ -158,7 +158,7 @@ internal sealed class Controller
         }
 
         var getSucNodeIdRequest = GetSucNodeIdRequest.Create();
-        GetSucNodeIdResponse? getSucNodeIdResponse = await _driver.SendRequestCommandAsync<GetSucNodeIdRequest, GetSucNodeIdResponse>(
+        GetSucNodeIdResponse? getSucNodeIdResponse = await _driver.SendCommandAsync<GetSucNodeIdRequest, GetSucNodeIdResponse>(
             getSucNodeIdRequest,
             cancellationToken).ConfigureAwait(false);
         if (getSucNodeIdResponse == null)

@@ -7,6 +7,12 @@ namespace ZWave;
 /// </summary>
 public sealed class ZWaveException : Exception
 {
+    public ZWaveException(ZWaveErrorCode errorCode, string message, Exception innerException)
+        : base(message, innerException)
+    {
+        ErrorCode = errorCode;
+    }
+
     public ZWaveException(ZWaveErrorCode errorCode, string message)
         : base(message)
     {

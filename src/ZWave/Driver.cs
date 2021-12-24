@@ -6,25 +6,31 @@ namespace ZWave;
 
 public sealed class Driver : IDisposable
 {
-    private record struct AwaitedCommand(DataFrameType Type, CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
+    private record struct AwaitedCommand(CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
 
     private readonly ILogger _logger;
 
     private readonly Stream _stream;
 
-    private readonly ZWaveFrameListener _listener;
+    private readonly ZWaveFrameListener _frameListener;
+
+    private readonly CommandScheduler _commandScheduler;
     
     private readonly Controller _controller;
 
-    private readonly List<AwaitedCommand> _awaitedCommands = new List<AwaitedCommand>();
-
     private byte _lastSessionId = 0;
+
+    private AwaitedCommand? _awaitedCommandResponse;
+
+    // Currenty this is the only non-callback request we wait on. If there are more, this should become a pattern.
+    private TaskCompletionSource<SerialApiStartedRequest>? _serialApiStartedTaskCompletionSource;
 
     private Driver(ILogger logger, Stream stream)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
-        _listener = new ZWaveFrameListener(logger, stream, ProcessFrame);
+        _frameListener = new ZWaveFrameListener(logger, stream, ProcessFrame);
+        _commandScheduler = new CommandScheduler(logger, stream, this);
         _controller = new Controller(logger, this);
     }
 
@@ -42,7 +48,7 @@ public sealed class Driver : IDisposable
 
     public void Dispose()
     {
-        _listener.Dispose();
+        _frameListener.Dispose();
         _stream.Dispose();
     }
 
@@ -53,9 +59,15 @@ public sealed class Driver : IDisposable
         // Perform initialization sequence (INS12350 6.1)
         await _stream.WriteAsync(Frame.NAK.Data, cancellationToken).ConfigureAwait(false);
 
-        // TODO: how do we know whether we should soft or hard reset?
-
-        await SoftResetAsync(cancellationToken).ConfigureAwait(false);
+        // TODO: Add retry logic.
+        try
+        {
+            await SoftResetAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new ZWaveException(ZWaveErrorCode.DriverInitializationFailed, "Soft reset failed", ex);
+        }
 
         await _controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
 
@@ -66,20 +78,27 @@ public sealed class Driver : IDisposable
     {
         _logger.LogSoftReset();
         var softResetRequest = SerialApiSoftResetRequest.Create();
-        SendCommand(softResetRequest);
+        await _commandScheduler.SendCommandAsync(softResetRequest.Frame, cancellationToken);
 
-        // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
-        TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
-        SerialApiStartedRequest? command = await WaitForCommandAsync<SerialApiStartedRequest>(
-            serialApiStartedWaitTime,
-            cancellationToken).ConfigureAwait(false);
-        if (command == null)
+        // TODO: Pause sending any new commands until we're sure everything is working again.
+        _serialApiStartedTaskCompletionSource = new TaskCompletionSource<SerialApiStartedRequest>();
+        try
         {
-            // TODO: Try reconnecting the port (uh oh), and then wait for
-            // SerialApiStarted again (5 sec [configureable] timeout), then check if the
-            // controller responds to some arbirary command (GetControllerVersion?).
-            // Retry a few times.
-            throw new ZWaveException(ZWaveErrorCode.DriverInitializationFailed, "Soft reset failed");
+            // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
+            TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
+
+            SerialApiStartedRequest serialApiStartedRequest = await _serialApiStartedTaskCompletionSource.Task.WaitAsync(serialApiStartedWaitTime);
+
+            // TODO: Log wakeup reason and maybe other things
+            // TODO: Do something with the response
+        }
+        catch (TimeoutException)
+        {
+            // Some if we don't get the signal, assume the soft reset was successful after the wait time.
+        }
+        finally
+        {
+            _serialApiStartedTaskCompletionSource = null;
         }
     }
 
@@ -88,18 +107,10 @@ public sealed class Driver : IDisposable
         switch (frame.Type)
         {
             case FrameType.ACK:
-            {
-                // TODO
-                break;
-            }
             case FrameType.NAK:
-            {
-                // TODO
-                break;
-            }
             case FrameType.CAN:
             {
-                // TODO
+                _commandScheduler.NotifyCommandDelivered(frame.Type);
                 break;
             }
             case FrameType.Data:
@@ -135,36 +146,40 @@ public sealed class Driver : IDisposable
             // TODO
         }
 
-        // TODO: What if there are more than one awaiter?
-        // TODO: Thread-safety
-        AwaitedCommand? matchingAwaitedCommand = null;
-        foreach (AwaitedCommand awaitedCommand in _awaitedCommands)
-        {
-            if (frame.Type == awaitedCommand.Type
-                && frame.CommandId == awaitedCommand.CommandId)
-            {
-                matchingAwaitedCommand = awaitedCommand;
-            }
-        }
-
-        if (matchingAwaitedCommand.HasValue)
-        {
-            matchingAwaitedCommand.Value.TaskCompletionSource.SetResult(frame);
-            _awaitedCommands.Remove(matchingAwaitedCommand.Value);
-        }
-
         switch (frame.Type)
         {
             case DataFrameType.REQ:
             {
+                // Immediately send the ACK
                 SendFrame(Frame.ACK);
 
-                // TODO
+                if (frame.CommandId == CommandId.SerialApiStarted
+                    && _serialApiStartedTaskCompletionSource != null)
+                {
+                    _serialApiStartedTaskCompletionSource.SetResult(SerialApiStartedRequest.Create(frame));
+                }
+
+                // TODO: Handle requests
                 break;
             }
             case DataFrameType.RES:
             {
-                // TODO
+                if (_awaitedCommandResponse == null)
+                {
+                    // We weren't expecting a response. Just drop it
+                    // TODO: Log
+                    return;
+                }
+
+                if (_awaitedCommandResponse.Value.CommandId != frame.CommandId)
+                {
+                    // We weren't expecting this response. Just drop it
+                    // TODO: Log
+                    return;
+                }
+
+                _awaitedCommandResponse.Value.TaskCompletionSource.SetResult(frame);
+                _awaitedCommandResponse = null;
                 break;
             }
             default:
@@ -175,8 +190,6 @@ public sealed class Driver : IDisposable
                 break;
             }
         }
-
-        // TODO
     }
 
     internal byte GetNextSessionId()
@@ -196,6 +209,13 @@ public sealed class Driver : IDisposable
         return nextSessionId;
     }
 
+    internal Task<DataFrame> WaitForResponseAsync(CommandId commandId)
+    {
+        var tcs = new TaskCompletionSource<DataFrame>();
+        _awaitedCommandResponse = new AwaitedCommand(commandId, tcs);
+        return tcs.Task;
+    }
+
     // TODO: This is super awkward
     internal async Task<(TResponse Response, TRequest Callback)?> SendRequestCommandWithCallbackAsync<TRequest, TResponse>(
         ICommand<TRequest> request,
@@ -203,71 +223,31 @@ public sealed class Driver : IDisposable
         where TRequest : struct, ICommand<TRequest>
         where TResponse : struct, ICommand<TResponse>
     {
-        TResponse? response = await SendRequestCommandAsync<TRequest, TResponse>(request, cancellationToken);
-        if (!response.HasValue)
-        {
-            return null;
-        }
+        TResponse response = await SendCommandAsync<TRequest, TResponse>(request, cancellationToken);
 
-        // TODO: Validate the response?
+        // TODO: Validate the response, wait for callback
+        TRequest callback = default;
 
-        // TODO: Check session ids
-        TRequest? callback = await WaitForCommandAsync<TRequest>(
-            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
-            cancellationToken).ConfigureAwait(false);
-        if (!callback.HasValue)
-        {
-            return null;
-        }
-
-        return (response.Value, callback.Value);
+        return (response, callback);
     }
 
-    internal async Task<TResponse?> SendRequestCommandAsync<TRequest, TResponse>(
+    internal async Task<TResponse> SendCommandAsync<TRequest, TResponse>(
         ICommand<TRequest> request,
         CancellationToken cancellationToken)
         where TRequest : struct, ICommand<TRequest>
         where TResponse : struct, ICommand<TResponse>
     {
-        SendCommand(request);
-
-        return await WaitForCommandAsync<TResponse>(
-            TimeSpan.FromSeconds(5), // TODO: This is arbitrary. Check the spec
+        DataFrame responseFrame = await _commandScheduler.SendCommandAsync(
+            request.Frame,
+            expectResponse: true,
             cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task<TCommand?> WaitForCommandAsync<TCommand>(
-        TimeSpan timeout,
-        CancellationToken cancellationToken)
-        where TCommand : struct, ICommand<TCommand>
-    {
-        TaskCompletionSource<DataFrame> taskCompletionSource = new TaskCompletionSource<DataFrame>();
-        _awaitedCommands.Add(new AwaitedCommand(TCommand.Type, TCommand.CommandId, taskCompletionSource));
-
-        try
-        {
-            var dataFrame = await taskCompletionSource.Task.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
-            return TCommand.Create(dataFrame);
-        }
-        catch (TimeoutException)
-        {
-            return null;
-        }
-    }
-
-    private void SendCommand<TCommand>(ICommand<TCommand> command)
-        where TCommand : struct, ICommand<TCommand>
-        => SendFrame(command.Frame);
-
-    private void SendFrame(DataFrame frame)
-    {
-        _logger.LogSerialApiDataFrameSent(frame);
-        _stream.Write(frame.Data.Span);
+        return TResponse.Create(responseFrame);
     }
 
     private void SendFrame(Frame frame)
     {
         // TODO: Make async? Frames are pretty small, so maybe not?
+        // TODO: Does this need to be coordinated with CommandScheduler?
         _logger.LogSerialApiFrameSent(frame);
         _stream.Write(frame.Data.Span);
     }
