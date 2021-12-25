@@ -49,149 +49,121 @@ internal sealed class Controller
 
     public async Task IdentifyAsync(CancellationToken cancellationToken)
     {
-        var memoryGetIdRequest = MemoryGetIdRequest.Create();
-        MemoryGetIdResponse? memoryGetIdResponse = await _driver.SendCommandAsync<MemoryGetIdRequest, MemoryGetIdResponse>(
-            memoryGetIdRequest,
-            cancellationToken).ConfigureAwait(false);
-        if (memoryGetIdResponse == null)
+        try
         {
-            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "MemoryGetId request timed out");
-        }
-
-        HomeId = memoryGetIdResponse.Value.HomeId;
-        NodeId = memoryGetIdResponse.Value.NodeId;
-        _logger.LogControllerIdentity(HomeId, NodeId);
-
-        var getSerialCapabilitiesRequest = GetSerialApiCapabilitiesRequest.Create();
-        GetSerialApiCapabilitiesResponse? getSerialCapabilitiesResponse = await _driver.SendCommandAsync<GetSerialApiCapabilitiesRequest, GetSerialApiCapabilitiesResponse>(
-            getSerialCapabilitiesRequest,
-            cancellationToken).ConfigureAwait(false);
-        if (getSerialCapabilitiesResponse == null)
-        {
-            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "GetSerialApiCapabilities request timed out");
-        }
-
-        SerialApiVersion = getSerialCapabilitiesResponse.Value.SerialApiVersion;
-        SerialApiRevision = getSerialCapabilitiesResponse.Value.SerialApiRevision;
-        ManufacturerId = getSerialCapabilitiesResponse.Value.ManufacturerId;
-        ProductType = getSerialCapabilitiesResponse.Value.ManufacturerProductType;
-        ProductId = getSerialCapabilitiesResponse.Value.ManufacturerProductId;
-        SupportedCommandIds = getSerialCapabilitiesResponse.Value.SupportedCommandIds;
-
-        _logger.LogSerialApiCapabilities(
-            SerialApiVersion,
-            SerialApiRevision,
-            ManufacturerId,
-            ProductType,
-            ProductId,
-            FormatCommandIds(SupportedCommandIds));
-
-        var versionRequest = VersionRequest.Create();
-        VersionResponse? versionResponse = await _driver.SendCommandAsync<VersionRequest, VersionResponse>(
-            versionRequest,
-            cancellationToken).ConfigureAwait(false);
-        if (versionResponse == null)
-        {
-            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "Version request timed out");
-        }
-
-        LibraryVersion = versionResponse.Value.LibraryVersion;
-        LibraryType = versionResponse.Value.LibraryType;
-        _logger.LogControllerLibraryVersion(LibraryVersion, LibraryType);
-
-        var getControllerCapabilitiesRequest = GetControllerCapabilitiesRequest.Create();
-        GetControllerCapabilitiesResponse? getControllerCapabilitiesResponse = await _driver.SendCommandAsync<GetControllerCapabilitiesRequest, GetControllerCapabilitiesResponse>(
-            getControllerCapabilitiesRequest,
-            cancellationToken).ConfigureAwait(false);
-        if (getControllerCapabilitiesResponse == null)
-        {
-            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "GetControllerCapabilities request timed out");
-        }
-
-        Capabilities = getControllerCapabilitiesResponse.Value.Capabilities;
-        _logger.LogControllerCapabilities(Capabilities);
-
-        if (SupportedCommandIds.Contains(SerialApiSetupRequest.CommandId))
-        {
-            var getSupportedSetupCommandsRequest = SerialApiSetupRequest.GetSupportedCommands();
-            SerialApiSetupGetSupportedCommandsResponse? getSupportedSetupCommandsResponse = await _driver.SendCommandAsync<SerialApiSetupRequest, SerialApiSetupGetSupportedCommandsResponse>(
-                getSupportedSetupCommandsRequest,
+            var memoryGetIdRequest = MemoryGetIdRequest.Create();
+            MemoryGetIdResponse memoryGetIdResponse = await _driver.SendCommandAsync<MemoryGetIdRequest, MemoryGetIdResponse>(
+                memoryGetIdRequest,
                 cancellationToken).ConfigureAwait(false);
-            if (getSupportedSetupCommandsResponse == null)
-            {
-                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.GetSupportedCommands request timed out");
-            }
+            HomeId = memoryGetIdResponse.HomeId;
+            NodeId = memoryGetIdResponse.NodeId;
+            _logger.LogControllerIdentity(HomeId, NodeId);
 
-            // The command was supported and this subcommand should always be supported, so this should never happen in practice.
-            if (!getSupportedSetupCommandsResponse.Value.WasSubcommandSupported)
-            {
-                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.GetSupportedCommands was not supported");
-            }
-
-            SupportedSerialApiSetupSubcommands = getSupportedSetupCommandsResponse.Value.SupportedSubcommands;
-        }
-        else
-        {
-            SupportedSerialApiSetupSubcommands = new HashSet<SerialApiSetupSubcommand>(0);
-        }
-
-        _logger.LogControllerSupportedSerialApiSetupSubcommands(FormatSerialApiSetupSubcommands(SupportedSerialApiSetupSubcommands));
-
-        if (SupportedSerialApiSetupSubcommands.Contains(SerialApiSetupSubcommand.SetTxStatusReport))
-        {
-            var setTxStatusReportRequest = SerialApiSetupRequest.SetTxStatusReport(enable: true);
-            SerialApiSetupSetTxStatusReportResponse? setTxStatusReportResponse = await _driver.SendCommandAsync<SerialApiSetupRequest, SerialApiSetupSetTxStatusReportResponse>(
-                setTxStatusReportRequest,
+            var getSerialCapabilitiesRequest = GetSerialApiCapabilitiesRequest.Create();
+            GetSerialApiCapabilitiesResponse getSerialCapabilitiesResponse = await _driver.SendCommandAsync<GetSerialApiCapabilitiesRequest, GetSerialApiCapabilitiesResponse>(
+                getSerialCapabilitiesRequest,
                 cancellationToken).ConfigureAwait(false);
-            if (setTxStatusReportResponse == null)
-            {
-                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.SetTxStatusReport request timed out");
-            }
 
-            // We checked that this was supported, so this should never happen in practice.
-            if (!setTxStatusReportResponse.Value.WasSubcommandSupported)
-            {
-                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.SetTxStatusReport was not supported");
-            }
+            SerialApiVersion = getSerialCapabilitiesResponse.SerialApiVersion;
+            SerialApiRevision = getSerialCapabilitiesResponse.SerialApiRevision;
+            ManufacturerId = getSerialCapabilitiesResponse.ManufacturerId;
+            ProductType = getSerialCapabilitiesResponse.ManufacturerProductType;
+            ProductId = getSerialCapabilitiesResponse.ManufacturerProductId;
+            SupportedCommandIds = getSerialCapabilitiesResponse.SupportedCommandIds;
+            _logger.LogSerialApiCapabilities(
+                SerialApiVersion,
+                SerialApiRevision,
+                ManufacturerId,
+                ProductType,
+                ProductId,
+                FormatCommandIds(SupportedCommandIds));
 
-            _logger.LogEnableTxStatusReport(setTxStatusReportResponse.Value.Success);
-        }
-
-        var getSucNodeIdRequest = GetSucNodeIdRequest.Create();
-        GetSucNodeIdResponse? getSucNodeIdResponse = await _driver.SendCommandAsync<GetSucNodeIdRequest, GetSucNodeIdResponse>(
-            getSucNodeIdRequest,
-            cancellationToken).ConfigureAwait(false);
-        if (getSucNodeIdResponse == null)
-        {
-            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "GetSucNodeId request timed out");
-        }
-
-        SucNodeId = getSucNodeIdResponse.Value.SucNodeId;
-        _logger.LogControllerSucNodeId(SucNodeId);
-
-        // If there is no SUC/SIS and we're not a SUC or secondard controller, promote ourselves
-        if (SucNodeId == 0
-            && !Capabilities.HasFlag(ControllerCapabilities.SecondaryController)
-            && !Capabilities.HasFlag(ControllerCapabilities.SucEnabled)
-            && !Capabilities.HasFlag(ControllerCapabilities.SisIsPresent))
-        {
-            var setSucNodeIdSessionId = _driver.GetNextSessionId();
-            var setSucNodeIdRequest = SetSucNodeIdRequest.Create(
-                SucNodeId,
-                enableSuc: true,
-                SetSucNodeIdRequestCapabilities.SucFuncNodeIdServer,
-                TransmissionOptions.ACK | TransmissionOptions.AutoRoute | TransmissionOptions.Explore,
-                setSucNodeIdSessionId);
-            (SetSucNodeIdResponse, SetSucNodeIdRequest)? responseAndCallback = await _driver.SendRequestCommandWithCallbackAsync<SetSucNodeIdRequest, SetSucNodeIdResponse>(
-                setSucNodeIdRequest,
+            var versionRequest = VersionRequest.Create();
+            VersionResponse versionResponse = await _driver.SendCommandAsync<VersionRequest, VersionResponse>(
+                versionRequest,
                 cancellationToken).ConfigureAwait(false);
-            if (!responseAndCallback.HasValue)
+            LibraryVersion = versionResponse.LibraryVersion;
+            LibraryType = versionResponse.LibraryType;
+            _logger.LogControllerLibraryVersion(LibraryVersion, LibraryType);
+
+            var getControllerCapabilitiesRequest = GetControllerCapabilitiesRequest.Create();
+            GetControllerCapabilitiesResponse getControllerCapabilitiesResponse = await _driver.SendCommandAsync<GetControllerCapabilitiesRequest, GetControllerCapabilitiesResponse>(
+                getControllerCapabilitiesRequest,
+                cancellationToken).ConfigureAwait(false);
+            Capabilities = getControllerCapabilitiesResponse.Capabilities;
+            _logger.LogControllerCapabilities(Capabilities);
+
+            if (SupportedCommandIds.Contains(SerialApiSetupRequest.CommandId))
             {
-                throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SetSucNodeId request timed out");
+                var getSupportedSetupCommandsRequest = SerialApiSetupRequest.GetSupportedCommands();
+                SerialApiSetupGetSupportedCommandsResponse getSupportedSetupCommandsResponse = await _driver.SendCommandAsync<SerialApiSetupRequest, SerialApiSetupGetSupportedCommandsResponse>(
+                    getSupportedSetupCommandsRequest,
+                    cancellationToken).ConfigureAwait(false);
+
+                // The command was supported and this subcommand should always be supported, so this should never happen in practice.
+                if (!getSupportedSetupCommandsResponse.WasSubcommandSupported)
+                {
+                    throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.GetSupportedCommands was not supported");
+                }
+
+                SupportedSerialApiSetupSubcommands = getSupportedSetupCommandsResponse.SupportedSubcommands;
+            }
+            else
+            {
+                SupportedSerialApiSetupSubcommands = new HashSet<SerialApiSetupSubcommand>(0);
             }
 
-            (SetSucNodeIdResponse response, SetSucNodeIdRequest callback) = responseAndCallback.Value;
-            // TODO: Use these
+            _logger.LogControllerSupportedSerialApiSetupSubcommands(FormatSerialApiSetupSubcommands(SupportedSerialApiSetupSubcommands));
+
+            if (SupportedSerialApiSetupSubcommands.Contains(SerialApiSetupSubcommand.SetTxStatusReport))
+            {
+                var setTxStatusReportRequest = SerialApiSetupRequest.SetTxStatusReport(enable: true);
+                SerialApiSetupSetTxStatusReportResponse setTxStatusReportResponse = await _driver.SendCommandAsync<SerialApiSetupRequest, SerialApiSetupSetTxStatusReportResponse>(
+                    setTxStatusReportRequest,
+                    cancellationToken).ConfigureAwait(false);
+
+                // We checked that this was supported, so this should never happen in practice.
+                if (!setTxStatusReportResponse.WasSubcommandSupported)
+                {
+                    throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SerialApiSetup.SetTxStatusReport was not supported");
+                }
+
+                _logger.LogEnableTxStatusReport(setTxStatusReportResponse.Success);
+            }
+
+            var getSucNodeIdRequest = GetSucNodeIdRequest.Create();
+            GetSucNodeIdResponse getSucNodeIdResponse = await _driver.SendCommandAsync<GetSucNodeIdRequest, GetSucNodeIdResponse>(
+                getSucNodeIdRequest,
+                cancellationToken).ConfigureAwait(false);
+            SucNodeId = getSucNodeIdResponse.SucNodeId;
+            _logger.LogControllerSucNodeId(SucNodeId);
+
+            // If there is no SUC/SIS and we're not a SUC or secondard controller, promote ourselves
+            if (SucNodeId == 0
+                && !Capabilities.HasFlag(ControllerCapabilities.SecondaryController)
+                && !Capabilities.HasFlag(ControllerCapabilities.SucEnabled)
+                && !Capabilities.HasFlag(ControllerCapabilities.SisIsPresent))
+            {
+                var setSucNodeIdRequest = SetSucNodeIdRequest.Create(
+                    SucNodeId,
+                    enableSuc: true,
+                    SetSucNodeIdRequestCapabilities.SucFuncNodeIdServer,
+                    TransmissionOptions.ACK | TransmissionOptions.AutoRoute | TransmissionOptions.Explore,
+                    _driver.GetNextSessionId());
+                SetSucNodeIdCallback setSucNodeIdCallback = await _driver.SendCommandExpectingCallbackAsync<SetSucNodeIdRequest, SetSucNodeIdCallback>(
+                    setSucNodeIdRequest,
+                    cancellationToken).ConfigureAwait(false);
+
+                // TODO: Use this
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "Failed to initialize the controller");
         }
     }
 

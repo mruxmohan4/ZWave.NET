@@ -14,4 +14,9 @@ public enum ZWaveErrorCode
     /// The controller failed to initialize.
     /// </summary>
     ControllerInitializationFailed,
+
+    /// <summary>
+    /// A ZWave command failed
+    /// </summary>
+    CommandFailed,
 }

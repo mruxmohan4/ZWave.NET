@@ -2,7 +2,7 @@
 
 namespace ZWave.Commands;
 
-internal struct SetSucNodeIdRequest : ICommand<SetSucNodeIdRequest>
+internal struct SetSucNodeIdRequest : IRequestWithCallback<SetSucNodeIdRequest>
 {
     public SetSucNodeIdRequest(DataFrame frame)
     {
@@ -13,7 +13,11 @@ internal struct SetSucNodeIdRequest : ICommand<SetSucNodeIdRequest>
 
     public static CommandId CommandId => CommandId.SetSucNodeId;
 
+    public static bool ExpectsResponseStatus => true;
+
     public DataFrame Frame { get; }
+
+    public byte SessionId => Frame.CommandParameters.Span[4];
 
     public static SetSucNodeIdRequest Create(
         byte nodeId,

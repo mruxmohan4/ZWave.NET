@@ -9,8 +9,7 @@ internal sealed class CommandScheduler : IDisposable
     private record struct Session(
         DataFrame Request,
         bool ExpectResponse,
-        TaskCompletionSource<DataFrame> SessionCompletion,
-        CancellationTokenRegistration CancellationTokenRegistration);
+        TaskCompletionSource<DataFrame> SessionCompletion);
 
     // INS12350 6.3 specifies that the host should use 3 retransmissions, meaning 4 total attempts
     private const int MaxTransmissionAttempts = 4;
@@ -52,26 +51,16 @@ internal sealed class CommandScheduler : IDisposable
         _newSessionEvent.Dispose();
     }
 
-    public Task WaitForCommandAsync(DataFrame request, CancellationToken cancellationToken)
-        => SendCommandAsync(request, expectResponse: false, cancellationToken);
+    public Task SendCommandAsync(DataFrame request)
+        => SendCommandAsync(request, expectResponse: false);
 
-    public Task SendCommandAsync(DataFrame request, CancellationToken cancellationToken)
-        => SendCommandAsync(request, expectResponse: false, cancellationToken);
-
-    public Task<DataFrame> SendCommandAsync(
-        DataFrame request,
-        bool expectResponse,
-        CancellationToken cancellationToken)
+    public Task<DataFrame> SendCommandAsync(DataFrame request, bool expectResponse)
     {
         var sessionCompletion = new TaskCompletionSource<DataFrame>();
-        CancellationTokenRegistration cancellationTokenRegistration = cancellationToken.Register(
-            static state => ((TaskCompletionSource<DataFrame>)state!).TrySetCanceled(),
-            state: sessionCompletion);
         var session = new Session(
             request,
             expectResponse,
-            sessionCompletion,
-            cancellationTokenRegistration);
+            sessionCompletion);
 
         _queue.Enqueue(session);
         _newSessionEvent.Set();
@@ -117,7 +106,6 @@ internal sealed class CommandScheduler : IDisposable
                     // TODO: Should soft reset. Or maybe let the caller decide?
                     // TODO: Use Exception instead.
                     session.SessionCompletion.SetCanceled();
-                    session.CancellationTokenRegistration.Unregister();
                     continue;
                 }
 
@@ -125,16 +113,13 @@ internal sealed class CommandScheduler : IDisposable
                 if (!session.ExpectResponse)
                 {
                     session.SessionCompletion.SetResult(default);
-                    session.CancellationTokenRegistration.Unregister();
                     continue;
                 }
 
                 // TODO: Should there be a timeout?
                 DataFrame response = await _driver.WaitForResponseAsync(session.Request.CommandId);
-                session.SessionCompletion.SetResult(response);
-                session.CancellationTokenRegistration.Unregister();
 
-                // TODO: What about callbacks?
+                session.SessionCompletion.SetResult(response);
             }
         }
         catch (OperationCanceledException)
