@@ -159,7 +159,7 @@ public class FrameTests
             FrameHeader.SOF,
             3, // Length
             (byte)DataFrameType.REQ,
-            (byte)CommandId.SerialApiSoftReset,
+            (byte)CommandId.SoftReset,
             0xF6 // Checksum
         })]
     public void Equality(bool expectedAreEqual, byte[] frameData1, byte[] frameData2)
@@ -220,7 +220,7 @@ public class FrameTests
             FrameHeader.SOF,
             3, // Length
             (byte)DataFrameType.REQ,
-            (byte)CommandId.SerialApiSoftReset,
+            (byte)CommandId.SoftReset,
             0xF6 // Checksum
         }));
 

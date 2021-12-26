@@ -85,7 +85,7 @@ public sealed class Driver : IDisposable
     public async Task SoftResetAsync(CancellationToken cancellationToken)
     {
         _logger.LogSoftReset();
-        var softResetRequest = SerialApiSoftResetRequest.Create();
+        var softResetRequest = SoftResetRequest.Create();
         await _commandScheduler.SendCommandAsync(softResetRequest.Frame)
             .WaitAsync(cancellationToken)
             .ConfigureAwait(false);

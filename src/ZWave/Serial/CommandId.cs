@@ -15,7 +15,7 @@ internal enum CommandId : byte
     /// stored in the external NVM (only controllers) and chip used in a specific Serial API
     /// Z-Wave Module.
     /// </summary>
-    SerialApiGetInitData = 0x02,
+    GetInitData = 0x02,
 
     /// <summary>
     /// Generate the Node Information frame and to save information about node capabilities.
@@ -45,7 +45,7 @@ internal enum CommandId : byte
     /// <summary>
     /// Request the Z-Wave Module to perform a soft reset
     /// </summary>
-    SerialApiSoftReset = 0x08,
+    SoftReset = 0x08,
 
     /// <summary>
     /// Transmit the data buffer using S2 multicast to a list of Z-Wave Nodes.

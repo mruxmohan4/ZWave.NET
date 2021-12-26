@@ -143,4 +143,21 @@ internal static partial class Logging
         Level = LogLevel.Debug,
         Message = "SUC Node Id: {sucNodeId}")]
     public static partial void LogControllerSucNodeId(this ILogger logger, byte sucNodeId);
+
+    [LoggerMessage(
+        EventId = 20,
+        Level = LogLevel.Information,
+        Message = "Init data:\n" +
+        "API Version = {apiVersion}\n" +
+        "API Capabilities = {apiCapabilities}\n" +
+        "Chip type = {chipType}\n" +
+        "Chip version = {chipVersion}\n" +
+        "Node IDs = {nodeIds}")]
+    public static partial void LogInitData(
+        this ILogger logger,
+        byte apiVersion,
+        GetInitDataCapabilities apiCapabilities,
+        byte chipType,
+        byte chipVersion,
+        string nodeIds);
 }

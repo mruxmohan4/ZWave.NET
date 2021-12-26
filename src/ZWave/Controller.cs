@@ -25,27 +25,11 @@ internal sealed class Controller
 
     public byte NodeId { get; private set; }
 
-    public byte SerialApiVersion { get; private set; }
-
-    public byte SerialApiRevision { get; private set; }
-
-    public ushort ManufacturerId { get; private set; }
-
-    public ushort ProductType { get; private set; }
-
-    public ushort ProductId { get; private set; }
-
     public HashSet<CommandId>? SupportedCommandIds { get; private set; }
-
-    public string? LibraryVersion { get; private set; }
-
-    public VersionLibraryType LibraryType { get; private set; }
-
-    public ControllerCapabilities Capabilities { get; private set; }
 
     public HashSet<SerialApiSetupSubcommand>? SupportedSerialApiSetupSubcommands { get; private set; }
 
-    public byte SucNodeId { get; private set; }
+    public HashSet<byte>? NodeIds { get; private set; }
 
     public async Task IdentifyAsync(CancellationToken cancellationToken)
     {
@@ -64,34 +48,34 @@ internal sealed class Controller
                 getSerialCapabilitiesRequest,
                 cancellationToken).ConfigureAwait(false);
 
-            SerialApiVersion = getSerialCapabilitiesResponse.SerialApiVersion;
-            SerialApiRevision = getSerialCapabilitiesResponse.SerialApiRevision;
-            ManufacturerId = getSerialCapabilitiesResponse.ManufacturerId;
-            ProductType = getSerialCapabilitiesResponse.ManufacturerProductType;
-            ProductId = getSerialCapabilitiesResponse.ManufacturerProductId;
+            byte serialApiVersion = getSerialCapabilitiesResponse.SerialApiVersion;
+            byte serialApiRevision = getSerialCapabilitiesResponse.SerialApiRevision;
+            ushort manufacturerId = getSerialCapabilitiesResponse.ManufacturerId;
+            ushort productType = getSerialCapabilitiesResponse.ManufacturerProductType;
+            ushort productId = getSerialCapabilitiesResponse.ManufacturerProductId;
             SupportedCommandIds = getSerialCapabilitiesResponse.SupportedCommandIds;
             _logger.LogSerialApiCapabilities(
-                SerialApiVersion,
-                SerialApiRevision,
-                ManufacturerId,
-                ProductType,
-                ProductId,
+                serialApiVersion,
+                serialApiRevision,
+                manufacturerId,
+                productType,
+                productId,
                 FormatCommandIds(SupportedCommandIds));
 
             var versionRequest = GetLibraryVersionRequest.Create();
             GetLibraryVersionResponse versionResponse = await _driver.SendCommandAsync<GetLibraryVersionRequest, GetLibraryVersionResponse>(
                 versionRequest,
                 cancellationToken).ConfigureAwait(false);
-            LibraryVersion = versionResponse.LibraryVersion;
-            LibraryType = versionResponse.LibraryType;
-            _logger.LogControllerLibraryVersion(LibraryVersion, LibraryType);
+            string libraryVersion = versionResponse.LibraryVersion;
+            VersionLibraryType libraryType = versionResponse.LibraryType;
+            _logger.LogControllerLibraryVersion(libraryVersion, libraryType);
 
             var getControllerCapabilitiesRequest = GetControllerCapabilitiesRequest.Create();
             GetControllerCapabilitiesResponse getControllerCapabilitiesResponse = await _driver.SendCommandAsync<GetControllerCapabilitiesRequest, GetControllerCapabilitiesResponse>(
                 getControllerCapabilitiesRequest,
                 cancellationToken).ConfigureAwait(false);
-            Capabilities = getControllerCapabilitiesResponse.Capabilities;
-            _logger.LogControllerCapabilities(Capabilities);
+            ControllerCapabilities controllerCapabilities = getControllerCapabilitiesResponse.Capabilities;
+            _logger.LogControllerCapabilities(controllerCapabilities);
 
             if (SupportedCommandIds.Contains(SerialApiSetupRequest.CommandId))
             {
@@ -135,17 +119,17 @@ internal sealed class Controller
             GetSucNodeIdResponse getSucNodeIdResponse = await _driver.SendCommandAsync<GetSucNodeIdRequest, GetSucNodeIdResponse>(
                 getSucNodeIdRequest,
                 cancellationToken).ConfigureAwait(false);
-            SucNodeId = getSucNodeIdResponse.SucNodeId;
-            _logger.LogControllerSucNodeId(SucNodeId);
+            var sucNodeId = getSucNodeIdResponse.SucNodeId;
+            _logger.LogControllerSucNodeId(sucNodeId);
 
             // If there is no SUC/SIS and we're not a SUC or secondard controller, promote ourselves
-            if (SucNodeId == 0
-                && !Capabilities.HasFlag(ControllerCapabilities.SecondaryController)
-                && !Capabilities.HasFlag(ControllerCapabilities.SucEnabled)
-                && !Capabilities.HasFlag(ControllerCapabilities.SisIsPresent))
+            if (sucNodeId == 0
+                && !controllerCapabilities.HasFlag(ControllerCapabilities.SecondaryController)
+                && !controllerCapabilities.HasFlag(ControllerCapabilities.SucEnabled)
+                && !controllerCapabilities.HasFlag(ControllerCapabilities.SisIsPresent))
             {
                 var setSucNodeIdRequest = SetSucNodeIdRequest.Create(
-                    SucNodeId,
+                    sucNodeId,
                     enableSuc: true,
                     SetSucNodeIdRequestCapabilities.SucFuncNodeIdServer,
                     TransmissionOptions.ACK | TransmissionOptions.AutoRoute | TransmissionOptions.Explore,
@@ -159,6 +143,22 @@ internal sealed class Controller
                     throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SetSucNodeId failed");
                 }
             }
+
+            var getInitDataRequest = GetInitDataRequest.Create();
+            GetInitDataResponse getInitDataResponse = await _driver.SendCommandAsync<GetInitDataRequest, GetInitDataResponse>(
+                getInitDataRequest,
+                cancellationToken).ConfigureAwait(false);
+            byte apiVersion = getInitDataResponse.ApiVersion;
+            GetInitDataCapabilities apiCapabilities = getInitDataResponse.ApiCapabilities;
+            byte chipType = getInitDataResponse.ChipType;
+            byte chipVersion = getInitDataResponse.ChipVersion;
+            NodeIds = getInitDataResponse.NodeIds;
+            _logger.LogInitData(
+                apiVersion,
+                apiCapabilities,
+                chipType,
+                chipVersion,
+                FormatNodeIds(NodeIds));
         }
         catch (OperationCanceledException)
         {
@@ -170,7 +170,7 @@ internal sealed class Controller
         }
     }
 
-    private string FormatCommandIds(HashSet<CommandId> commandIds)
+    private static string FormatCommandIds(HashSet<CommandId> commandIds)
     {
         int literalLength = commandIds.Count * 2;
         int formattedCount = commandIds.Count;
@@ -194,7 +194,7 @@ internal sealed class Controller
         return handler.ToStringAndClear();
     }
 
-    private string FormatSerialApiSetupSubcommands(HashSet<SerialApiSetupSubcommand> subcommands)
+    private static string FormatSerialApiSetupSubcommands(HashSet<SerialApiSetupSubcommand> subcommands)
     {
         int literalLength = subcommands.Count * 2;
         int formattedCount = subcommands.Count;
@@ -212,6 +212,30 @@ internal sealed class Controller
             isFirst = false;
 
             handler.AppendFormatted(subcommand);
+        }
+
+        handler.AppendLiteral("]");
+        return handler.ToStringAndClear();
+    }
+
+    private static string FormatNodeIds(HashSet<byte> nodeIds)
+    {
+        int literalLength = nodeIds.Count * 2;
+        int formattedCount = nodeIds.Count;
+
+        var handler = new DefaultInterpolatedStringHandler(literalLength, formattedCount);
+        handler.AppendLiteral("[");
+        bool isFirst = true;
+        foreach (byte nodeId in nodeIds)
+        {
+            if (!isFirst)
+            {
+                handler.AppendLiteral(", ");
+            }
+
+            isFirst = false;
+
+            handler.AppendFormatted(nodeId);
         }
 
         handler.AppendLiteral("]");
