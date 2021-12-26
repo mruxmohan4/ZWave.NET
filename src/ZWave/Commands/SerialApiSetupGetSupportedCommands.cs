@@ -2,6 +2,12 @@
 
 namespace ZWave.Commands;
 
+internal partial struct SerialApiSetupRequest
+{
+    public static SerialApiSetupRequest GetSupportedCommands()
+        => Create(SerialApiSetupSubcommand.GetSupportedCommands, ReadOnlySpan<byte>.Empty);
+}
+
 internal struct SerialApiSetupGetSupportedCommandsResponse : ICommand<SerialApiSetupGetSupportedCommandsResponse>
 {
     public SerialApiSetupGetSupportedCommandsResponse(DataFrame frame)

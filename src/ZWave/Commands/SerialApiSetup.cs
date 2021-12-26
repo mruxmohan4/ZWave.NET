@@ -1,4 +1,6 @@
-﻿namespace ZWave.Commands;
+﻿using ZWave.Serial;
+
+namespace ZWave.Commands;
 
 internal enum SerialApiSetupSubcommand : byte
 {
@@ -46,4 +48,30 @@ internal enum SerialApiSetupSubcommand : byte
     /// Configure the NodeID base type for the Z-Wave API.
     /// </summary>
     SetNodeIdBaseType = 0x80,
+}
+
+internal partial struct SerialApiSetupRequest : ICommand<SerialApiSetupRequest>
+{
+    public SerialApiSetupRequest(DataFrame frame)
+    {
+        Frame = frame;
+    }
+
+    public static DataFrameType Type => DataFrameType.REQ;
+
+    public static CommandId CommandId => CommandId.SerialApiSetup;
+
+    public DataFrame Frame { get; }
+
+    private static SerialApiSetupRequest Create(SerialApiSetupSubcommand subcommand, ReadOnlySpan<byte> subcommandParameters)
+    {
+        Span<byte> commandParameters = stackalloc byte[subcommandParameters.Length + 1];
+        commandParameters[0] = (byte)subcommand;
+        subcommandParameters.CopyTo(commandParameters[1..]);
+
+        var frame = DataFrame.Create(Type, CommandId, commandParameters);
+        return new SerialApiSetupRequest(frame);
+    }
+
+    public static SerialApiSetupRequest Create(DataFrame frame) => new SerialApiSetupRequest(frame);
 }

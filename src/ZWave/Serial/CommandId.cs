@@ -96,7 +96,7 @@ internal enum CommandId : byte
     /// <summary>
     /// Get the Z-Wave basis API library version.
     /// </summary>
-    Version = 0x15,
+    GetLibraryVersion = 0x15,
 
     /// <summary>
     /// Abort the ongoing transmit started with ZW_SendData or ZW_SendDataMulti.

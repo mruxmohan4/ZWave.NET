@@ -78,8 +78,8 @@ internal sealed class Controller
                 ProductId,
                 FormatCommandIds(SupportedCommandIds));
 
-            var versionRequest = VersionRequest.Create();
-            VersionResponse versionResponse = await _driver.SendCommandAsync<VersionRequest, VersionResponse>(
+            var versionRequest = GetLibraryVersionRequest.Create();
+            GetLibraryVersionResponse versionResponse = await _driver.SendCommandAsync<GetLibraryVersionRequest, GetLibraryVersionResponse>(
                 versionRequest,
                 cancellationToken).ConfigureAwait(false);
             LibraryVersion = versionResponse.LibraryVersion;
@@ -154,7 +154,10 @@ internal sealed class Controller
                     setSucNodeIdRequest,
                     cancellationToken).ConfigureAwait(false);
 
-                // TODO: Use this
+                if (setSucNodeIdCallback.SetSucNodeIdStatus != SetSucNodeIdStatus.Succeeded)
+                {
+                    throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SetSucNodeId failed");
+                }
             }
         }
         catch (OperationCanceledException)
