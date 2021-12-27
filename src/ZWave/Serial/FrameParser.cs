@@ -35,7 +35,10 @@ internal static class FrameParser
             return false;
         }
 
-        logger.LogSerialApiSkippedBytes(skippedSequence.Length);
+        if (skippedSequence.Length > 0)
+        {
+            logger.LogSerialApiSkippedBytes(skippedSequence.Length);
+        }
 
         // Consume the invalid data regardless of whether we find the frame complete later.
         sequence = sequence.Slice(reader.Position);

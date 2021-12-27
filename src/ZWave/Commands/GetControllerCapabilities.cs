@@ -20,7 +20,13 @@ internal enum ControllerCapabilities : byte
     /// </summary>
     SisIsPresent = 1 << 2,
 
-    // As per spec, bit 3 is to be ignored
+    /// <summary>
+    /// Before the SIS was added, the controller was the primary
+    /// </summary>
+    /// <remarks>
+    /// As per spec, bit 3 is to be ignored
+    /// </remarks>
+    WasRealPrimary = 1 << 3,
 
     /// <summary>
     /// The module provides the SUC functionality in the current network

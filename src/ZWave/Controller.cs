@@ -7,7 +7,7 @@ using ZWave.Serial;
 
 namespace ZWave;
 
-internal sealed class Controller
+public sealed class Controller
 {
     private readonly ILogger _logger;
 
@@ -25,9 +25,33 @@ internal sealed class Controller
 
     public byte NodeId { get; private set; }
 
+    public byte SerialApiVersion { get; private set; }
+
+    public byte SerialApiRevision { get; private set; }
+
+    public ushort ManufacturerId { get; private set; }
+
+    public ushort ProductType { get; private set; }
+
+    public ushort ProductId { get; private set; }
+
     public HashSet<CommandId>? SupportedCommandIds { get; private set; }
 
+    public string? LibraryVersion { get; private set; }
+
+    public LibraryType LibraryType { get; private set; }
+
     public HashSet<SerialApiSetupSubcommand>? SupportedSerialApiSetupSubcommands { get; private set; }
+
+    public byte SucNodeId { get; private set; }
+
+    public byte ApiVersion { get; private set; }
+
+    public byte ChipType { get; private set; }
+
+    public byte ChipVersion { get; private set; }
+
+    public bool IsPrimary { get; private set; }
 
     public HashSet<byte>? NodeIds { get; private set; }
 
@@ -48,33 +72,34 @@ internal sealed class Controller
                 getSerialCapabilitiesRequest,
                 cancellationToken).ConfigureAwait(false);
 
-            byte serialApiVersion = getSerialCapabilitiesResponse.SerialApiVersion;
-            byte serialApiRevision = getSerialCapabilitiesResponse.SerialApiRevision;
-            ushort manufacturerId = getSerialCapabilitiesResponse.ManufacturerId;
-            ushort productType = getSerialCapabilitiesResponse.ManufacturerProductType;
-            ushort productId = getSerialCapabilitiesResponse.ManufacturerProductId;
+            SerialApiVersion = getSerialCapabilitiesResponse.SerialApiVersion;
+            SerialApiRevision = getSerialCapabilitiesResponse.SerialApiRevision;
+            ManufacturerId = getSerialCapabilitiesResponse.ManufacturerId;
+            ProductType = getSerialCapabilitiesResponse.ManufacturerProductType;
+            ProductId = getSerialCapabilitiesResponse.ManufacturerProductId;
             SupportedCommandIds = getSerialCapabilitiesResponse.SupportedCommandIds;
             _logger.LogSerialApiCapabilities(
-                serialApiVersion,
-                serialApiRevision,
-                manufacturerId,
-                productType,
-                productId,
+                SerialApiVersion,
+                SerialApiRevision,
+                ManufacturerId,
+                ProductType,
+                ProductId,
                 FormatCommandIds(SupportedCommandIds));
 
             var versionRequest = GetLibraryVersionRequest.Create();
             GetLibraryVersionResponse versionResponse = await _driver.SendCommandAsync<GetLibraryVersionRequest, GetLibraryVersionResponse>(
                 versionRequest,
                 cancellationToken).ConfigureAwait(false);
-            string libraryVersion = versionResponse.LibraryVersion;
-            VersionLibraryType libraryType = versionResponse.LibraryType;
-            _logger.LogControllerLibraryVersion(libraryVersion, libraryType);
+            LibraryVersion = versionResponse.LibraryVersion;
+            LibraryType = versionResponse.LibraryType;
+            _logger.LogControllerLibraryVersion(LibraryVersion, LibraryType);
 
             var getControllerCapabilitiesRequest = GetControllerCapabilitiesRequest.Create();
             GetControllerCapabilitiesResponse getControllerCapabilitiesResponse = await _driver.SendCommandAsync<GetControllerCapabilitiesRequest, GetControllerCapabilitiesResponse>(
                 getControllerCapabilitiesRequest,
                 cancellationToken).ConfigureAwait(false);
             ControllerCapabilities controllerCapabilities = getControllerCapabilitiesResponse.Capabilities;
+            IsPrimary = !controllerCapabilities.HasFlag(ControllerCapabilities.SecondaryController);
             _logger.LogControllerCapabilities(controllerCapabilities);
 
             if (SupportedCommandIds.Contains(SerialApiSetupRequest.CommandId))
@@ -119,17 +144,17 @@ internal sealed class Controller
             GetSucNodeIdResponse getSucNodeIdResponse = await _driver.SendCommandAsync<GetSucNodeIdRequest, GetSucNodeIdResponse>(
                 getSucNodeIdRequest,
                 cancellationToken).ConfigureAwait(false);
-            var sucNodeId = getSucNodeIdResponse.SucNodeId;
-            _logger.LogControllerSucNodeId(sucNodeId);
+            SucNodeId = getSucNodeIdResponse.SucNodeId;
+            _logger.LogControllerSucNodeId(SucNodeId);
 
             // If there is no SUC/SIS and we're not a SUC or secondard controller, promote ourselves
-            if (sucNodeId == 0
+            if (SucNodeId == 0
                 && !controllerCapabilities.HasFlag(ControllerCapabilities.SecondaryController)
                 && !controllerCapabilities.HasFlag(ControllerCapabilities.SucEnabled)
                 && !controllerCapabilities.HasFlag(ControllerCapabilities.SisIsPresent))
             {
                 var setSucNodeIdRequest = SetSucNodeIdRequest.Create(
-                    sucNodeId,
+                    SucNodeId,
                     enableSuc: true,
                     SetSucNodeIdRequestCapabilities.SucFuncNodeIdServer,
                     TransmissionOptions.ACK | TransmissionOptions.AutoRoute | TransmissionOptions.Explore,
@@ -142,31 +167,34 @@ internal sealed class Controller
                 {
                     throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "SetSucNodeId failed");
                 }
+
+                SucNodeId = NodeId;
             }
 
             var getInitDataRequest = GetInitDataRequest.Create();
             GetInitDataResponse getInitDataResponse = await _driver.SendCommandAsync<GetInitDataRequest, GetInitDataResponse>(
                 getInitDataRequest,
                 cancellationToken).ConfigureAwait(false);
-            byte apiVersion = getInitDataResponse.ApiVersion;
+            ApiVersion = getInitDataResponse.ApiVersion;
             GetInitDataCapabilities apiCapabilities = getInitDataResponse.ApiCapabilities;
-            byte chipType = getInitDataResponse.ChipType;
-            byte chipVersion = getInitDataResponse.ChipVersion;
+            IsPrimary = !apiCapabilities.HasFlag(GetInitDataCapabilities.SecondaryController);
+            ChipType = getInitDataResponse.ChipType;
+            ChipVersion = getInitDataResponse.ChipVersion;
             NodeIds = getInitDataResponse.NodeIds;
             _logger.LogInitData(
-                apiVersion,
+                ApiVersion,
                 apiCapabilities,
-                chipType,
-                chipVersion,
+                ChipType,
+                ChipVersion,
                 FormatNodeIds(NodeIds));
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "Failed to initialize the controller");
+            throw new ZWaveException(ZWaveErrorCode.ControllerInitializationFailed, "Failed to initialize the controller", ex);
         }
     }
 

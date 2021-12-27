@@ -8,7 +8,7 @@
 /// https://www.silabs.com/documents/public/user-guides/INS12350-Serial-API-Host-Appl.-Prg.-Guide.pdf
 /// https://www.silabs.com/documents/public/user-guides/INS13954-Instruction-Z-Wave-500-Series-Appl-Programmers-Guide-v6_8x_0x.pdf
 /// </remarks>
-internal enum CommandId : byte
+public enum CommandId : byte
 {
     /// <summary>
     /// Determine Serial API protocol version number, Serial API capabilities, nodes currently

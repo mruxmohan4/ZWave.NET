@@ -16,6 +16,11 @@ public enum ZWaveErrorCode
     ControllerInitializationFailed,
 
     /// <summary>
+    /// A ZWAve command failed to send.
+    /// </summary>
+    CommandSendFailed,
+
+    /// <summary>
     /// A ZWave command failed
     /// </summary>
     CommandFailed,

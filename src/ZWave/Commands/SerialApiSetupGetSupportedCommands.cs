@@ -53,7 +53,7 @@ internal struct SerialApiSetupGetSupportedCommandsResponse : ICommand<SerialApiS
 
                 for (int byteNum = 0; byteNum < bitMask.Length; byteNum++)
                 {
-                    for (int bitNum = 0; byteNum < 8; byteNum++)
+                    for (int bitNum = 0; bitNum < 8; bitNum++)
                     {
                         if ((bitMask[byteNum] & (1 << bitNum)) != 0)
                         {

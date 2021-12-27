@@ -4,7 +4,7 @@ using ZWave.Serial;
 
 namespace ZWave.Commands;
 
-internal enum VersionLibraryType : byte
+public enum LibraryType : byte
 {
     /// <summary>
     /// This library is intended for main home controllers, that are typically Primary controllers in a network
@@ -23,7 +23,7 @@ internal enum VersionLibraryType : byte
     Enhanced232EndNode = 0x03,
 
     /// <summary>
-    /// This library is intended for end nodes with more limited capabilities than the Enhanced 232 End Node Library.
+    /// This library is intended for end nodes with more limited capabilities than the Enhanced 232 End Node Library.
     /// </summary>
     EndNode = 0x04,
 
@@ -102,7 +102,7 @@ internal struct GetLibraryVersionResponse : ICommand<GetLibraryVersionResponse>
     /// <summary>
     /// The library type that runs on the Z-Wave Module.
     /// </summary>
-    public VersionLibraryType LibraryType => (VersionLibraryType)Frame.CommandParameters.Span[12];
+    public LibraryType LibraryType => (LibraryType)Frame.CommandParameters.Span[12];
 
     public static GetLibraryVersionResponse Create(DataFrame frame) => new GetLibraryVersionResponse(frame);
 }

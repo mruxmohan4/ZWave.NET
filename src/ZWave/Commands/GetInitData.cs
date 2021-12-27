@@ -6,7 +6,7 @@ namespace ZWave.Commands;
 internal enum GetInitDataCapabilities : byte
 {
     /// <summary>
-    /// The Z-Wave module is a Controller Node.
+    /// The Z-Wave module is an end node.
     /// </summary>
     EndNode = 1 << 0,
 
@@ -16,9 +16,12 @@ internal enum GetInitDataCapabilities : byte
     TimerFunctions = 1 << 1,
 
     /// <summary>
-    /// The Z-Wave module hasthe Primary Controller role in the current network.
+    /// The Z-Wave module has the Primary Controller role in the current network.
     /// </summary>
-    PrimaryController = 1 << 2,
+    /// <remarks>
+    /// The spec is very unclear on this value, so copying zwave-js in its interpretation.
+    /// </remarks>
+    SecondaryController = 1 << 2,
 
     /// <summary>
     /// The Z-Wave module has SIS functionality enabled.
@@ -84,7 +87,7 @@ internal struct GetInitDataResponse : ICommand<GetInitDataResponse>
             var bitMask = Frame.CommandParameters.Span.Slice(3, nodeListLength);
             for (int byteNum = 0; byteNum < bitMask.Length; byteNum++)
             {
-                for (int bitNum = 0; byteNum < 8; byteNum++)
+                for (int bitNum = 0; bitNum < 8; bitNum++)
                 {
                     if ((bitMask[byteNum] & (1 << bitNum)) != 0)
                     {

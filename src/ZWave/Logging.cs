@@ -118,7 +118,7 @@ internal static partial class Logging
         Message = "Controller library:\n" +
         "Library version = {libraryVersion}\n" +
         "Library type = {libraryType}")]
-    public static partial void LogControllerLibraryVersion(this ILogger logger, string libraryVersion, VersionLibraryType libraryType);
+    public static partial void LogControllerLibraryVersion(this ILogger logger, string libraryVersion, LibraryType libraryType);
 
     [LoggerMessage(
         EventId = 16,

@@ -31,6 +31,13 @@ public sealed class ZWaveSerialPortStream : Stream
             parity: Parity.None,
             dataBits: 8,
             stopBits: StopBits.One);
+        Open();
+    }
+
+    public bool IsOpen => _port.IsOpen;
+
+    public void Open()
+    {
         _port.Open();
         _port.DiscardInBuffer();
         _port.DiscardOutBuffer();

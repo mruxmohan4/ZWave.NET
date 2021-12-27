@@ -12,13 +12,11 @@ public sealed class Driver : IDisposable
 
     private readonly ILogger _logger;
 
-    private readonly Stream _stream;
+    private readonly ZWaveSerialPortStream _stream;
 
     private readonly ZWaveFrameListener _frameListener;
 
     private readonly CommandScheduler _commandScheduler;
-    
-    private readonly Controller _controller;
 
     // Lock anything related to session ids or callbacks
     private readonly object _callbackLock = new object();
@@ -33,14 +31,16 @@ public sealed class Driver : IDisposable
     // Currenty this is the only non-callback request we wait on. If there are more, this should become a pattern.
     private TaskCompletionSource<SerialApiStartedRequest>? _serialApiStartedTaskCompletionSource;
 
-    private Driver(ILogger logger, Stream stream)
+    private Driver(ILogger logger, ZWaveSerialPortStream stream)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
         _frameListener = new ZWaveFrameListener(logger, stream, ProcessFrame);
         _commandScheduler = new CommandScheduler(logger, stream, this);
-        _controller = new Controller(logger, this);
+        Controller = new Controller(logger, this);
     }
+
+    public Controller Controller { get; }
 
     public static async Task<Driver> CreateAsync(
         ILogger logger,
@@ -77,7 +77,7 @@ public sealed class Driver : IDisposable
             throw new ZWaveException(ZWaveErrorCode.DriverInitializationFailed, "Soft reset failed", ex);
         }
 
-        await _controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
+        await Controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.LogDriverInitialized();
     }
@@ -97,16 +97,24 @@ public sealed class Driver : IDisposable
             // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
             TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
 
+            // TODO: this causes exceptions in the listener. The Serial Port management needs to be done better.
             SerialApiStartedRequest serialApiStartedRequest = await _serialApiStartedTaskCompletionSource.Task
                 .WaitAsync(serialApiStartedWaitTime, cancellationToken)
                 .ConfigureAwait(false);
 
             // TODO: Log wakeup reason and maybe other things
             // TODO: Do something with the response
+            return;
         }
         catch (TimeoutException)
         {
             // If we don't get the signal, assume the soft reset was successful after the wait time.
+
+            // Some controllers disconnect after a soft reset. If that's the case, re-open.
+            if (!_stream.IsOpen)
+            {
+                _stream.Open();
+            }
         }
         finally
         {

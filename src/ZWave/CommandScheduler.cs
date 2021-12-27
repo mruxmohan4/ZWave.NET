@@ -104,8 +104,7 @@ internal sealed class CommandScheduler : IDisposable
                 if (!commandSent)
                 {
                     // TODO: Should soft reset. Or maybe let the caller decide?
-                    // TODO: Use Exception instead.
-                    session.SessionCompletion.SetCanceled();
+                    session.SessionCompletion.SetException(new ZWaveException(ZWaveErrorCode.CommandSendFailed, "Command failed to send"));
                     continue;
                 }
 

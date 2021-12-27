@@ -2,7 +2,7 @@
 
 namespace ZWave.Commands;
 
-internal enum SerialApiSetupSubcommand : byte
+public enum SerialApiSetupSubcommand : byte
 {
     /// <summary>
     /// Request the list of Z-Wave API Setup Sub Commands that are supported by the Z-Wave API Module

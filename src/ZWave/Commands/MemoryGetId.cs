@@ -39,7 +39,7 @@ internal struct MemoryGetIdResponse : ICommand<MemoryGetIdResponse>
 
     public uint HomeId => Frame.CommandParameters.Span[0..4].ToUInt32BE();
 
-    public byte NodeId => Frame.CommandParameters.Span[5];
+    public byte NodeId => Frame.CommandParameters.Span[4];
 
     public static MemoryGetIdResponse Create(DataFrame frame) => new MemoryGetIdResponse(frame);
 }
