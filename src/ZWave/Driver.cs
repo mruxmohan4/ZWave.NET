@@ -79,6 +79,20 @@ public sealed class Driver : IDisposable
 
         await Controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
 
+        // Interview the nodes, starting with the controller node
+        await InterviewNodeAsync(Controller.NodeId, cancellationToken).ConfigureAwait(false);
+        if (Controller.NodeIds != null)
+        {
+            foreach (byte nodeId in Controller.NodeIds)
+            {
+                if (nodeId != Controller.NodeId)
+                {
+                    // TODO: Do in parallel
+                    await InterviewNodeAsync(nodeId, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
         _logger.LogDriverInitialized();
     }
 
@@ -119,6 +133,30 @@ public sealed class Driver : IDisposable
         finally
         {
             _serialApiStartedTaskCompletionSource = null;
+        }
+    }
+
+    public async Task InterviewNodeAsync(byte nodeId, CancellationToken cancellationToken)
+    {
+        // TODO: Do in stages?
+
+        var getNodeProtocolInfoRequest = GetNodeProtocolInfoRequest.Create(nodeId);
+        GetNodeProtocolInfoResponse getNodeProtocolInfoResponse = await SendCommandAsync<GetNodeProtocolInfoRequest, GetNodeProtocolInfoResponse>(
+            getNodeProtocolInfoRequest,
+            cancellationToken).ConfigureAwait(false);
+        // TODO: Log
+        // TODO: Do something with the protocol info
+
+        if (nodeId != Controller.NodeId)
+        {
+            // This causes unsolicited requests from the controller with command id ApplicationControllerUpdate
+            // TODO: Plumb those requests here.
+            var requestNodeInfoRequest = RequestNodeInfoRequest.Create(nodeId);
+            await _commandScheduler.SendCommandAsync(requestNodeInfoRequest.Frame)
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            // TODO: Interview CCs?
         }
     }
 
