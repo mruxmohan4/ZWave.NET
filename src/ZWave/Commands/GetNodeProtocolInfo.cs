@@ -2,6 +2,24 @@
 
 namespace ZWave.Commands;
 
+public enum FrequentListeningMode
+{
+    None,
+
+    Sensor1000ms,
+
+    Sensor250ms,
+}
+
+public enum NodeType
+{
+    Unknown,
+
+    Controller,
+
+    EndNode,
+}
+
 internal struct GetNodeProtocolInfoRequest : ICommand<GetNodeProtocolInfoRequest>
 {
     public GetNodeProtocolInfoRequest(DataFrame frame)
@@ -86,17 +104,22 @@ internal struct GetNodeProtocolInfoResponse : ICommand<GetNodeProtocolInfoRespon
     /// </summary>
     public bool OptionalFunctionality => (Frame.CommandParameters.Span[1] & 0b10000000) != 0;
 
-    public bool Sensor1000ms => (Frame.CommandParameters.Span[1] & 0b01000000) != 0;
-
-    public bool Sensor250ms => (Frame.CommandParameters.Span[1] & 0b00100000) != 0;
+    public FrequentListeningMode FrequentListeningMode =>
+        (Frame.CommandParameters.Span[1] & 0b01000000) != 0
+            ? FrequentListeningMode.Sensor1000ms
+            : (Frame.CommandParameters.Span[1] & 0b00100000) != 0
+                ? FrequentListeningMode.Sensor250ms
+                : FrequentListeningMode.None;
 
     public bool SupportsBeaming => (Frame.CommandParameters.Span[1] & 0b00010000) != 0;
 
-    public bool IsEndNode => (Frame.CommandParameters.Span[1] & 0b00001000) != 0;
+    public NodeType NodeType => (Frame.CommandParameters.Span[1] & 0b00001000) != 0
+        ? NodeType.EndNode
+        : (Frame.CommandParameters.Span[1] & 0b00000010) != 0
+            ? NodeType.Controller
+            : NodeType.Unknown;
 
     public bool HasSpecificDeviceClass => (Frame.CommandParameters.Span[1] & 0b00000100) != 0;
-
-    public bool IsController => (Frame.CommandParameters.Span[1] & 0b00000010) != 0;
 
     public bool SupportsSecurity => (Frame.CommandParameters.Span[1] & 0b00000001) != 0;
 

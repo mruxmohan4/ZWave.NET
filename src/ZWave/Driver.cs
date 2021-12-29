@@ -79,17 +79,16 @@ public sealed class Driver : IDisposable
 
         await Controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
 
-        // Interview the nodes, starting with the controller node
-        await InterviewNodeAsync(Controller.NodeId, cancellationToken).ConfigureAwait(false);
-        if (Controller.NodeIds != null)
+        // Begin interviewing the nodes, starting with and waiting for the controller node
+        Node controllerNode = Controller.Nodes[Controller.NodeId];
+        await controllerNode.InterviewAsync(cancellationToken).ConfigureAwait(false);
+        foreach (KeyValuePair<byte, Node> pair in Controller.Nodes)
         {
-            foreach (byte nodeId in Controller.NodeIds)
+            Node node = pair.Value;
+            if (node != controllerNode)
             {
-                if (nodeId != Controller.NodeId)
-                {
-                    // TODO: Do in parallel
-                    await InterviewNodeAsync(nodeId, cancellationToken).ConfigureAwait(false);
-                }
+                // This is intentionally fire-and-forget
+                _ = node.InterviewAsync(cancellationToken);
             }
         }
 
@@ -100,8 +99,7 @@ public sealed class Driver : IDisposable
     {
         _logger.LogSoftReset();
         var softResetRequest = SoftResetRequest.Create();
-        await _commandScheduler.SendCommandAsync(softResetRequest.Frame)
-            .WaitAsync(cancellationToken)
+        await SendCommandAsync(softResetRequest, cancellationToken)
             .ConfigureAwait(false);
 
         // TODO: Pause sending any new commands until we're sure everything is working again.
@@ -133,30 +131,6 @@ public sealed class Driver : IDisposable
         finally
         {
             _serialApiStartedTaskCompletionSource = null;
-        }
-    }
-
-    public async Task InterviewNodeAsync(byte nodeId, CancellationToken cancellationToken)
-    {
-        // TODO: Do in stages?
-
-        var getNodeProtocolInfoRequest = GetNodeProtocolInfoRequest.Create(nodeId);
-        GetNodeProtocolInfoResponse getNodeProtocolInfoResponse = await SendCommandAsync<GetNodeProtocolInfoRequest, GetNodeProtocolInfoResponse>(
-            getNodeProtocolInfoRequest,
-            cancellationToken).ConfigureAwait(false);
-        // TODO: Log
-        // TODO: Do something with the protocol info
-
-        if (nodeId != Controller.NodeId)
-        {
-            // This causes unsolicited requests from the controller with command id ApplicationControllerUpdate
-            // TODO: Plumb those requests here.
-            var requestNodeInfoRequest = RequestNodeInfoRequest.Create(nodeId);
-            await _commandScheduler.SendCommandAsync(requestNodeInfoRequest.Frame)
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            // TODO: Interview CCs?
         }
     }
 
@@ -216,6 +190,15 @@ public sealed class Driver : IDisposable
                 {
                     _serialApiStartedTaskCompletionSource.SetResult(SerialApiStartedRequest.Create(frame));
                     return;
+                }
+
+                // TODO: Do this better
+                if (frame.CommandId == CommandId.ApplicationUpdate
+                    && frame.CommandParameters.Span[0] == (byte)ApplicationUpdateEvent.NodeInfoReceived)
+                {
+                    var nodeInfoReceived = ApplicationControllerUpdateNodeInfoReceived.Create(frame);
+                    var node = Controller.Nodes[nodeInfoReceived.NodeId];
+                    node.NotifyNodeInfoReceived(nodeInfoReceived);
                 }
 
                 // This assumes the first command parameter is always the session id. If this is ever
@@ -322,8 +305,7 @@ public sealed class Driver : IDisposable
         }
         else
         {
-            await _commandScheduler.SendCommandAsync(request.Frame)
-                .WaitAsync(cancellationToken)
+            await SendCommandAsync(request, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -350,6 +332,16 @@ public sealed class Driver : IDisposable
             .WaitAsync(cancellationToken)
             .ConfigureAwait(false);
         return TResponse.Create(responseFrame);
+    }
+
+    internal async Task SendCommandAsync<TRequest>(
+        TRequest request,
+        CancellationToken cancellationToken)
+        where TRequest : struct, ICommand<TRequest>
+    {
+        await _commandScheduler.SendCommandAsync(request.Frame)
+            .WaitAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private void SendFrame(Frame frame)

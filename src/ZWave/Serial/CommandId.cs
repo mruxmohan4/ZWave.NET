@@ -265,7 +265,7 @@ public enum CommandId : byte
     /// <summary>
     /// Update local data structures or to control smart start inclusion
     /// </summary>
-    ApplicationControllerUpdate = 0x49,
+    ApplicationUpdate = 0x49,
 
     /// <summary>
     /// Add a node to a Z-Wave network.

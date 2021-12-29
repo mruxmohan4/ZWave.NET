@@ -13,6 +13,8 @@ public sealed class Controller
 
     private readonly Driver _driver;
 
+    private readonly Dictionary<byte, Node> _nodes = new Dictionary<byte, Node>();
+
     public Controller(
         ILogger logger,
         Driver driver)
@@ -53,7 +55,7 @@ public sealed class Controller
 
     public bool IsPrimary { get; private set; }
 
-    public HashSet<byte>? NodeIds { get; private set; }
+    public IReadOnlyDictionary<byte, Node> Nodes => _nodes;
 
     public async Task IdentifyAsync(CancellationToken cancellationToken)
     {
@@ -180,13 +182,19 @@ public sealed class Controller
             IsPrimary = !apiCapabilities.HasFlag(GetInitDataCapabilities.SecondaryController);
             ChipType = getInitDataResponse.ChipType;
             ChipVersion = getInitDataResponse.ChipVersion;
-            NodeIds = getInitDataResponse.NodeIds;
+
+            HashSet<byte> nodeIds = getInitDataResponse.NodeIds;
+            foreach (byte nodeId in nodeIds)
+            {
+                _nodes.Add(nodeId, new Node(nodeId, _driver, _logger));
+            }
+
             _logger.LogInitData(
                 ApiVersion,
                 apiCapabilities,
                 ChipType,
                 ChipVersion,
-                FormatNodeIds(NodeIds));
+                FormatNodeIds(nodeIds));
         }
         catch (OperationCanceledException)
         {

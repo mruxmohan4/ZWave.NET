@@ -39,7 +39,7 @@ public class InfoController : ControllerBase
             ChipType = controller.ChipType,
             ChipVersion = controller.ChipVersion,
             IsPrimary = controller.IsPrimary,
-            NodeIds = controller.NodeIds,
+            NodeIds = controller.Nodes.Select(pair => pair.Value.Id).ToList(),
         };
     }
 }
