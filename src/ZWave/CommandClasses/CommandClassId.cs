@@ -1,6 +1,6 @@
 ﻿namespace ZWave.CommandClasses;
 
-internal enum CommandClassId : byte
+public enum CommandClassId : byte
 {
     SupportControlMark = 0xef,
 }

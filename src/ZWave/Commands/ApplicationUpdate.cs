@@ -90,56 +90,32 @@ internal struct ApplicationControllerUpdateNodeInfoReceived : ICommand<Applicati
     public byte SpecificDeviceClass => Frame.CommandParameters.Span[5];
 
     /// <summary>
-    /// The list of non-secure supported Command Classes by the remote node.
+    /// The list of non-secure implemented Command Classes by the remote node.
     /// </summary>
-    public IReadOnlyList<CommandClassId> SupportedCommandClasses
+    public IReadOnlyList<CommandClassInfo> CommandClasses
     {
         get
         {
             byte length = Frame.CommandParameters.Span[2];
             ReadOnlySpan<byte> allCommandClasses = Frame.CommandParameters.Span.Slice(6, length);
 
-            int supportControlMark = allCommandClasses.IndexOf((byte)CommandClassId.SupportControlMark);
-
-            // If the support control mark isn't in the list, they're all supported-only.
-            ReadOnlySpan<byte> supportedCommandClassBytes = supportControlMark == -1
-                ? allCommandClasses
-                : allCommandClasses.Slice(0, supportControlMark);
-
-            var supportedCommandClasses = new CommandClassId[supportedCommandClassBytes.Length];
-            for (int i = 0; i < supportedCommandClassBytes.Length; i++)
+            var commandClassInfos = new List<CommandClassInfo>(allCommandClasses.Length);
+            bool isSupported = true;
+            bool isControlled = false;
+            for (int i = 0; i < allCommandClasses.Length; i++)
             {
-                supportedCommandClasses[i] = (CommandClassId)supportedCommandClassBytes[i];
+                var commandClassId = (CommandClassId)allCommandClasses[i];
+                if (commandClassId == CommandClassId.SupportControlMark)
+                {
+                    isSupported = false;
+                    isControlled = true;
+                    continue;
+                }
+
+                commandClassInfos.Add(new CommandClassInfo(commandClassId, isSupported, isControlled));
             }
 
-            return supportedCommandClasses;
-        }
-    }
-
-    /// <summary>
-    /// The list of non-secure controlled Command Classes by the remote node.
-    /// </summary>
-    public IReadOnlyList<CommandClassId> ControlledCommandClasses
-    {
-        get
-        {
-            byte length = Frame.CommandParameters.Span[2];
-            ReadOnlySpan<byte> allCommandClasses = Frame.CommandParameters.Span.Slice(6, length);
-
-            int supportControlMark = allCommandClasses.IndexOf((byte)CommandClassId.SupportControlMark);
-
-            // If the support control mark isn't in the list, none are controlled.
-            ReadOnlySpan<byte> controlledCommandClassBytes = supportControlMark == -1
-                ? ReadOnlySpan<byte>.Empty
-                : allCommandClasses.Slice(supportControlMark + 1);
-
-            var controlledCommandClasses = new CommandClassId[controlledCommandClassBytes.Length];
-            for (int i = 0; i < controlledCommandClassBytes.Length; i++)
-            {
-                controlledCommandClasses[i] = (CommandClassId)controlledCommandClassBytes[i];
-            }
-
-            return controlledCommandClasses;
+            return commandClassInfos;
         }
     }
 

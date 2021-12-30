@@ -1,7 +1,5 @@
-﻿using System.Threading;
-
-using Microsoft.Extensions.Logging;
-
+﻿using Microsoft.Extensions.Logging;
+using ZWave.CommandClasses;
 using ZWave.Commands;
 
 namespace ZWave;
@@ -13,6 +11,8 @@ public sealed class Node
     private readonly ILogger _logger;
 
     private readonly AsyncAutoResetEvent _nodeInfoRecievedEvent = new AsyncAutoResetEvent();
+
+    private readonly Dictionary<CommandClassId, CommandClassInfo> _commandClasses = new Dictionary<CommandClassId, CommandClassInfo>();
 
     private Task? _interviewTask;
 
@@ -42,6 +42,8 @@ public sealed class Node
     public bool SupportsBeaming { get; private set; }
 
     public bool SupportsSecurity { get; private set; }
+
+    public IReadOnlyDictionary<CommandClassId, CommandClassInfo> CommandClasses => _commandClasses;
 
     /// <summary>
     /// Interviews a node.
@@ -100,13 +102,36 @@ public sealed class Node
             catch (OperationCanceledException)
             {
             }
-        });
+        },
+        cancellationToken);
     }
 
     internal void NotifyNodeInfoReceived(ApplicationControllerUpdateNodeInfoReceived nodeInfoReceived)
     {
-        // TODO: Do something with the data
+        // TODO: Log
+        foreach (CommandClassInfo commandClassInfo in nodeInfoReceived.CommandClasses)
+        {
+            AddCommandClassInfo(commandClassInfo);
+        }
 
         _nodeInfoRecievedEvent.Set();
+    }
+
+    private void AddCommandClassInfo(CommandClassInfo newInfo)
+    {
+        lock(_commandClasses)
+        {
+            if (_commandClasses.TryGetValue(newInfo.CommandClass, out CommandClassInfo existingInfo))
+            {
+                _commandClasses[newInfo.CommandClass] = new CommandClassInfo(
+                    newInfo.CommandClass,
+                    newInfo.IsSupported || existingInfo.IsSupported,
+                    newInfo.IsControlled || existingInfo.IsControlled);
+            }
+            else
+            {
+                _commandClasses.Add(newInfo.CommandClass, newInfo);
+            }
+        }
     }
 }
