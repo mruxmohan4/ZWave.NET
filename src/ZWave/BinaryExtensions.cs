@@ -2,6 +2,8 @@
 
 internal static class BinaryExtensions
 {
+    public static sbyte ToInt8(this byte b) => unchecked((sbyte)b);
+
     public static ushort ToUInt16BE(this ReadOnlySpan<byte> bytes)
     {
         // BitConverter uses the endianness of the machine, so figure out if we have to reverse the bytes.
