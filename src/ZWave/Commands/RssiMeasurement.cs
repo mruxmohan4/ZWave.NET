@@ -45,5 +45,5 @@ internal struct RssiMeasurement
 
     public sbyte? Value => HasValue ? _value : null;
 
-    public static RssiMeasurement Parse(byte b) => new RssiMeasurement(b.ToInt8());
+    public static implicit operator RssiMeasurement(byte b) => new RssiMeasurement(b.ToInt8());
 }

@@ -63,7 +63,7 @@ internal readonly struct TransmissionStatusReport
     /// </summary>
     public RssiMeasurement? AckRssi
         => _data.Length > 3
-            ? RssiMeasurement.Parse(_data.Span[3])
+            ? _data.Span[3]
             : null;
 
     /// <summary>
@@ -79,10 +79,10 @@ internal readonly struct TransmissionStatusReport
             }
 
             Span<RssiMeasurement> result = new RssiMeasurement[4];
-            result[0] = RssiMeasurement.Parse(_data.Span[4]);
-            result[1] = RssiMeasurement.Parse(_data.Span[5]);
-            result[2] = RssiMeasurement.Parse(_data.Span[6]);
-            result[3] = RssiMeasurement.Parse(_data.Span[7]);
+            result[0] = _data.Span[4];
+            result[1] = _data.Span[5];
+            result[2] = _data.Span[6];
+            result[3] = _data.Span[7];
             return result;
         }
     }
@@ -193,7 +193,7 @@ internal readonly struct TransmissionStatusReport
     /// </summary>
     public RssiMeasurement? MeasuredNoiseFloor
         => _data.Length > 20
-            ? RssiMeasurement.Parse(_data.Span[20])
+            ? _data.Span[20]
             : null;
 
     /// <summary>
@@ -222,7 +222,7 @@ internal readonly struct TransmissionStatusReport
     /// </summary>
     public RssiMeasurement? DestinationAckMeasuredRssi
         => _data.Length > 22
-                ? RssiMeasurement.Parse(_data.Span[22])
+                ? _data.Span[22]
                 : null;
 
     /// <summary>
@@ -230,6 +230,6 @@ internal readonly struct TransmissionStatusReport
     /// </summary>
     public RssiMeasurement? DestinationAckMeasuredNoiseFloor
         => _data.Length > 23
-            ? RssiMeasurement.Parse(_data.Span[23])
+            ? _data.Span[23]
             : null;
 }
