@@ -1,4 +1,4 @@
-﻿namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 internal enum TransmissionStatus : byte
 {

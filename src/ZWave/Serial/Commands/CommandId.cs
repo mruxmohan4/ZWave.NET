@@ -1,4 +1,4 @@
-﻿namespace ZWave.Serial;
+﻿namespace ZWave.Serial.Commands;
 
 /// <summary>
 /// The ids for various Serial API commands.
@@ -114,7 +114,7 @@ public enum CommandId : byte
     SetRoutingInfo = 0x1b,
 
     /// <summary>
-    /// Returns a random word using the 500 series built-in hardware random number generator 
+    /// Returns a random word using the 500 series built-in hardware random number generator
     /// based on (internal) RF noise(RFRNG).
     /// </summary>
     GetRandomWord = 0x1c,
@@ -215,7 +215,7 @@ public enum CommandId : byte
     GetBackgroundRSSI = 0x3b,
 
     /// <summary>
-    /// Sets the “Listen Before Talk” threshold that controlles at what RSSI level a Z-Wave node 
+    /// Sets the “Listen Before Talk” threshold that controlles at what RSSI level a Z-Wave node
     /// will refuse to transmit because of noise.
     /// </summary>
     SetListenBeforeTalkThreshold = 0x3c,
@@ -236,13 +236,13 @@ public enum CommandId : byte
     SetDefault = 0x42,
 
     /// <summary>
-    /// Sends command completed to sending controller. Called in replication mode when a command from the 
+    /// Sends command completed to sending controller. Called in replication mode when a command from the
     /// sender has been processed and indicates that the controller is ready for next packet.
     /// </summary>
     ReplicationReceiveComplete = 0x44,
 
     /// <summary>
-    /// Used when the controller is in replication mode. It sends the payload and expects the receiver to respond 
+    /// Used when the controller is in replication mode. It sends the payload and expects the receiver to respond
     /// with a command complete message
     /// </summary>
     ReplicationSend = 0x45,
@@ -288,7 +288,7 @@ public enum CommandId : byte
     ControllerChange = 0x4d,
 
     /// <summary>
-    /// Assign a application defined Priority Return Route to a routing or an enhanced slave that always will be 
+    /// Assign a application defined Priority Return Route to a routing or an enhanced slave that always will be
     /// tried as the first return route attempt.
     /// </summary>
     AssignPriorityReturnRoute = 0x4f,
@@ -330,7 +330,7 @@ public enum CommandId : byte
     SendSucId = 0x57,
 
     /// <summary>
-    /// Assign a application defined Priority SUC Return Route to a routing or an enhanced slave that always 
+    /// Assign a application defined Priority SUC Return Route to a routing or an enhanced slave that always
     /// will be tried as the first return route attempt.
     /// </summary>
     AssignPrioritySucReturnRoute = 0x58,
@@ -381,7 +381,7 @@ public enum CommandId : byte
     ReplaceFailedNode = 0x63,
 
     /// <summary>
-    /// The Firmware Update API provides functionality which together with the SDK supplied ZW_Bootloader 
+    /// The Firmware Update API provides functionality which together with the SDK supplied ZW_Bootloader
     /// module and a big enough external NVM makes it possible to implement firmware update
     /// </summary>
     FirmwareUpdate = 0x78,

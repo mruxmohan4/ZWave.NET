@@ -1,6 +1,4 @@
-﻿using ZWave.Serial;
-
-namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 [Flags]
 internal enum ControllerCapabilities : byte
@@ -29,7 +27,7 @@ internal enum ControllerCapabilities : byte
     WasRealPrimary = 1 << 3,
 
     /// <summary>
-    /// The module provides the SUC functionality in the current network
+    /// The module provides the SUC functionality in the current network
     /// </summary>
     SucEnabled = 1 << 4,
 

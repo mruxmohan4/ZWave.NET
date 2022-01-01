@@ -1,8 +1,6 @@
 ﻿using System.Text;
 
-using ZWave.Serial;
-
-namespace ZWave.Commands;
+namespace ZWave.Serial.Commands;
 
 public enum LibraryType : byte
 {
@@ -33,7 +31,7 @@ public enum LibraryType : byte
     Installer = 0x05,
 
     /// <summary>
-    /// This library is intended for end nodes with routing capabilities.
+    /// This library is intended for end nodes with routing capabilities.
     /// </summary>
     RoutingEndNode = 0x06,
 

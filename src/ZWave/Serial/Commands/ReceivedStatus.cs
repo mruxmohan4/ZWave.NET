@@ -1,4 +1,4 @@
-﻿namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 [Flags]
 internal enum ReceivedStatus : byte
@@ -28,7 +28,7 @@ internal enum ReceivedStatus : byte
     Explore = 1 << 5,
 
     /// <summary>
-    /// The frame not addressed to the Z-Wave Module. This is useful only in promiscuous mode.
+    /// The frame not addressed to the Z-Wave Module. This is useful only in promiscuous mode.
     /// </summary>
     ForeignFrame = 1 << 6,
 

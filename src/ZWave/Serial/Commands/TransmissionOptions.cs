@@ -1,4 +1,4 @@
-﻿namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 [Flags]
 internal enum TransmissionOptions : byte

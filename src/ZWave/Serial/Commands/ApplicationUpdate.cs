@@ -1,7 +1,6 @@
-﻿using ZWave.Serial;
-using ZWave.CommandClasses;
+﻿using ZWave.CommandClasses;
 
-namespace ZWave.Commands;
+namespace ZWave.Serial.Commands;
 
 /// <summary>
 /// Indicates which event has triggered the transmission of thie ApplicationControllerUpdate command.

@@ -1,6 +1,4 @@
-﻿using ZWave.Serial;
-
-namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 /// <summary>
 /// This command is used by a Z-Wave module to notify a host application that a Z-Wave frame has been received
@@ -26,7 +24,7 @@ internal struct ApplicationCommandHandler : ICommand<ApplicationCommandHandler>
 
     public ReadOnlyMemory<byte> Payload => Frame.CommandParameters.Slice(3, PayloadLength);
 
-    public RssiMeasurement ReceivedRssi => Frame.CommandParameters.Span[^1];
+    public RssiMeasurement ReceivedRssi => Frame.CommandParameters.Span[3 + PayloadLength];
 
     public static ApplicationCommandHandler Create(DataFrame frame) => new ApplicationCommandHandler(frame);
 }

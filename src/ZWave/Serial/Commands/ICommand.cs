@@ -1,6 +1,4 @@
-﻿using ZWave.Serial;
-
-namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 internal interface ICommand<TCommand> where TCommand : struct, ICommand<TCommand>
 {

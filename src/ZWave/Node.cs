@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using ZWave.CommandClasses;
-using ZWave.Commands;
+using ZWave.Serial.Commands;
 
 namespace ZWave;
 

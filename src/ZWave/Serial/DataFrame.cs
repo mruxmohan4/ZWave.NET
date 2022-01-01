@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using ZWave.Serial.Commands;
 
 namespace ZWave.Serial;
 

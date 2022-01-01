@@ -1,4 +1,4 @@
-﻿namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 internal enum TransmissionStatusReportLastRouteSpeed : byte
 {
@@ -136,7 +136,7 @@ internal readonly struct TransmissionStatusReport
             : null;
 
     /// <summary>
-    /// The transmission speed used in the route to communicate with the destination.
+    /// The transmission speed used in the route to communicate with the destination.
     /// </summary>
     public TransmissionStatusReportLastRouteSpeed? LastRouteSpeed
         => _data.Length > 15
@@ -218,7 +218,7 @@ internal readonly struct TransmissionStatusReport
     }
 
     /// <summary>
-    /// The measured RSSI of the acknowledgement frame received from the destination.
+    /// The measured RSSI of the acknowledgement frame received from the destination.
     /// </summary>
     public RssiMeasurement? DestinationAckMeasuredRssi
         => _data.Length > 22

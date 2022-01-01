@@ -1,8 +1,7 @@
 ﻿using System.Buffers;
-
 using Microsoft.Extensions.Logging.Abstractions;
-
 using ZWave.Serial;
+using ZWave.Serial.Commands;
 
 namespace ZWave.Tests.Serial;
 

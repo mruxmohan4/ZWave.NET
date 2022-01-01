@@ -1,6 +1,4 @@
-﻿using ZWave.Serial;
-
-namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 [Flags]
 internal enum GetInitDataCapabilities : byte
@@ -24,7 +22,7 @@ internal enum GetInitDataCapabilities : byte
     SecondaryController = 1 << 2,
 
     /// <summary>
-    /// The Z-Wave module has SIS functionality enabled.
+    /// The Z-Wave module has SIS functionality enabled.
     /// </summary>
     SisFunctionality = 1 << 3,
 }

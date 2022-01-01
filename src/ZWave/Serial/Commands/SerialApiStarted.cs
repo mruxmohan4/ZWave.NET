@@ -1,6 +1,4 @@
-﻿using ZWave.Serial;
-
-namespace ZWave.Commands;
+﻿namespace ZWave.Serial.Commands;
 
 /// <summary>
 /// Describes the reason the Z-Wave API Module has been woken up.
@@ -23,7 +21,7 @@ internal enum SerialApiStartedWakeUpReason : byte
     WakeUpBeam = 0x02,
 
     /// <summary>
-    /// Reset triggered by the watchdog.
+    /// Reset triggered by the watchdog.
     /// </summary>
     WatchdogReset = 0x03,
 
