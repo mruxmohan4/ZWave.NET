@@ -50,9 +50,27 @@ internal struct BasicValue
     public static implicit operator BasicValue(byte b) => new BasicValue(b);
 }
 
-internal struct BasicCommandClassSet : ICommandClass<BasicCommandClassSet>
+enum BasicCommand
 {
-    public BasicCommandClassSet(ReadOnlyMemory<byte> payload)
+    /// <summary>
+    /// Set a value in a supporting device
+    /// </summary>
+    Set = 0x01,
+
+    /// <summary>
+    /// Request the status of a supporting device
+    /// </summary>
+    Get = 0x02,
+
+    /// <summary>
+    /// Advertise the status of the primary functionality of the device.
+    /// </summary>
+    Report = 0x03,
+}
+
+internal struct BasicSetCommand : ICommandClass<BasicSetCommand>
+{
+    public BasicSetCommand(ReadOnlyMemory<byte> payload)
     {
         Payload = payload;
     }
@@ -61,15 +79,16 @@ internal struct BasicCommandClassSet : ICommandClass<BasicCommandClassSet>
 
     public ReadOnlyMemory<byte> Payload { get; }
 
-    public BasicValue Value => Payload.Span[0];
+    // TODO: Shouldn't be raw payload. Command class and command should be sliced off.
+    public BasicValue Value => Payload.Span[2];
 
-    public static BasicCommandClassSet Create(ReadOnlyMemory<byte> payload)
-        => new BasicCommandClassSet(payload);
+    public static BasicSetCommand Create(ReadOnlyMemory<byte> payload)
+        => new BasicSetCommand(payload);
 }
 
-internal struct BasicCommandClassGet : ICommandClass<BasicCommandClassGet>
+internal struct BasicGetCommand : ICommandClass<BasicGetCommand>
 {
-    public BasicCommandClassGet(ReadOnlyMemory<byte> payload)
+    public BasicGetCommand(ReadOnlyMemory<byte> payload)
     {
         Payload = payload;
     }
@@ -78,13 +97,13 @@ internal struct BasicCommandClassGet : ICommandClass<BasicCommandClassGet>
 
     public ReadOnlyMemory<byte> Payload { get; }
 
-    public static BasicCommandClassGet Create(ReadOnlyMemory<byte> payload)
-        => new BasicCommandClassGet(payload);
+    public static BasicGetCommand Create(ReadOnlyMemory<byte> payload)
+        => new BasicGetCommand(payload);
 }
 
-internal struct BasicCommandClassReport : ICommandClass<BasicCommandClassReport>
+internal struct BasicReportCommand : ICommandClass<BasicReportCommand>
 {
-    public BasicCommandClassReport(ReadOnlyMemory<byte> payload)
+    public BasicReportCommand(ReadOnlyMemory<byte> payload)
     {
         Payload = payload;
     }
@@ -96,22 +115,22 @@ internal struct BasicCommandClassReport : ICommandClass<BasicCommandClassReport>
     /// <summary>
     /// The current value of the device hardware
     /// </summary>
-    public BasicValue CurrentValue => Payload.Span[0];
+    public BasicValue CurrentValue => Payload.Span[2];
 
     /// <summary>
     /// The the target value of an ongoing transition or the most recent transition.
     /// </summary>
-    public BasicValue? TargetValue => Payload.Length > 1
-        ? Payload.Span[1]
+    public BasicValue? TargetValue => Payload.Length > 3
+        ? Payload.Span[3]
         : null;
 
     /// <summary>
     /// The time needed to reach the Target Value at the actual transition rate.
     /// </summary>
-    public DurationReport? Duration => Payload.Length > 2
-        ? Payload.Span[2]
+    public DurationReport? Duration => Payload.Length > 4
+        ? Payload.Span[4]
         : null;
 
-    public static BasicCommandClassReport Create(ReadOnlyMemory<byte> payload)
-        => new BasicCommandClassReport(payload);
+    public static BasicReportCommand Create(ReadOnlyMemory<byte> payload)
+        => new BasicReportCommand(payload);
 }
