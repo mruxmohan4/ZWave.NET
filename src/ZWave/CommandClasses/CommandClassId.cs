@@ -3,7 +3,13 @@
 public enum CommandClassId : byte
 {
     NoOperation = 0x00,
+
+    /// <summary>
+    /// The Basic Command Class allows a controlling device to operate the primary functionality of a supporting
+    /// device without any further knowledge.
+    /// </summary>
     Basic = 0x20,
+
     ControllerReplication = 0x21,
     ApplicationStatus = 0x22,
     ZIp = 0x23,
