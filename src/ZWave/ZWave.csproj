@@ -11,6 +11,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ZWave.BuildTools\ZWave.BuildTools.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="ZWave.Tests" />
   </ItemGroup>
 

@@ -54,6 +54,7 @@ public struct BasicValue
     public static implicit operator BasicValue(bool b) => new BasicValue(b);
 }
 
+[CommandClass(CommandClassId.Basic)]
 public sealed class BasicCommandClass : CommandClass
 {
     public BasicCommandClass(
