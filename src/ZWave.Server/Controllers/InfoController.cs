@@ -26,8 +26,7 @@ public class InfoController : ControllerBase
         {
             HomeId = controller.HomeId,
             ControllerNodeId = controller.NodeId,
-            SerialApiVersion = controller.SerialApiVersion,
-            SerialApiRevision = controller.SerialApiRevision,
+            FirmwareVersion = controller.FirmwareVersion,
             ManufacturerId = controller.ManufacturerId,
             ProductType = controller.ProductType,
             ProductId = controller.ProductId,

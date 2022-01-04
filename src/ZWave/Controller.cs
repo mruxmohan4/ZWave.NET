@@ -25,9 +25,7 @@ public sealed class Controller
 
     public byte NodeId { get; private set; }
 
-    public byte SerialApiVersion { get; private set; }
-
-    public byte SerialApiRevision { get; private set; }
+    public Version? FirmwareVersion { get; private set; }
 
     public ushort ManufacturerId { get; private set; }
 
@@ -72,15 +70,14 @@ public sealed class Controller
                 getSerialCapabilitiesRequest,
                 cancellationToken).ConfigureAwait(false);
 
-            SerialApiVersion = getSerialCapabilitiesResponse.SerialApiVersion;
-            SerialApiRevision = getSerialCapabilitiesResponse.SerialApiRevision;
+            // Although the docs refer to this as the serial API verison, it's really the controller device's firmware version.
+            FirmwareVersion = new Version(getSerialCapabilitiesResponse.SerialApiVersion, getSerialCapabilitiesResponse.SerialApiRevision);
             ManufacturerId = getSerialCapabilitiesResponse.ManufacturerId;
             ProductType = getSerialCapabilitiesResponse.ManufacturerProductType;
             ProductId = getSerialCapabilitiesResponse.ManufacturerProductId;
             SupportedCommandIds = getSerialCapabilitiesResponse.SupportedCommandIds;
             _logger.LogSerialApiCapabilities(
-                SerialApiVersion,
-                SerialApiRevision,
+                FirmwareVersion,
                 ManufacturerId,
                 ProductType,
                 ProductId,

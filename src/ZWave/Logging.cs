@@ -97,15 +97,13 @@ internal static partial class Logging
         Level = LogLevel.Information,
         Message = "Serial API capabilities:\n" +
         "Serial API Version = {serialApiVersion}\n" +
-        "Serial API Revision = {serialApiRevision}\n" +
         "Manufacturer ID = {manufacturerId}\n" +
         "Product type = {productType}\n" +
         "Product ID = {productId}\n" +
         "Supported Commands = {supportedCommands}")]
     public static partial void LogSerialApiCapabilities(
         this ILogger logger,
-        byte serialApiVersion,
-        byte serialApiRevision,
+        Version serialApiVersion,
         ushort manufacturerId,
         ushort productType,
         ushort productId,
