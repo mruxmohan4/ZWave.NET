@@ -134,4 +134,9 @@ public sealed class Node
             }
         }
     }
+
+    internal void ProcessCommand(CommandClassFrame frame)
+    {
+        // TODO
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using ZWave.CommandClasses;
 using ZWave.Serial;
 using ZWave.Serial.Commands;
 
@@ -200,13 +201,21 @@ public sealed class Driver : IDisposable
                     }
                     case CommandId.ApplicationUpdate:
                     {
-                        var nodeInfoReceived = ApplicationUpdateRequest.Create(frame);
-                        if (nodeInfoReceived.Event == ApplicationUpdateEvent.NodeInfoReceived)
+                        var applicationUpdateRequest = ApplicationUpdateRequest.Create(frame);
+                        if (applicationUpdateRequest.Event == ApplicationUpdateEvent.NodeInfoReceived)
                         {
-                            var node = Controller.Nodes[nodeInfoReceived.Generic.NodeId];
-                            node.NotifyNodeInfoReceived(nodeInfoReceived);
+                            var node = Controller.Nodes[applicationUpdateRequest.Generic.NodeId];
+                            node.NotifyNodeInfoReceived(applicationUpdateRequest);
                         }
 
+                        break;
+                    }
+                    case CommandId.ApplicationCommandHandler:
+                    {
+                        var applicationCommandHandler = ApplicationCommandHandler.Create(frame);
+                        var node = Controller.Nodes[applicationCommandHandler.NodeId];
+                        var commandClassFrame = new CommandClassFrame(applicationCommandHandler.Payload);
+                        node.ProcessCommand(commandClassFrame);
                         break;
                     }
                     default:
@@ -303,7 +312,7 @@ public sealed class Driver : IDisposable
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : struct, IRequestWithCallback<TRequest>
-        where TCallback : struct, ICommand<TCallback>
+        where TCallback : struct, Serial.Commands.ICommand<TCallback>
     {
         byte sessionId = request.SessionId;
 
@@ -336,8 +345,8 @@ public sealed class Driver : IDisposable
     internal async Task<TResponse> SendCommandAsync<TRequest, TResponse>(
         TRequest request,
         CancellationToken cancellationToken)
-        where TRequest : struct, ICommand<TRequest>
-        where TResponse : struct, ICommand<TResponse>
+        where TRequest : struct, Serial.Commands.ICommand<TRequest>
+        where TResponse : struct, Serial.Commands.ICommand<TResponse>
     {
         DataFrame responseFrame = await _commandScheduler.SendCommandAsync(
             request.Frame,
@@ -350,7 +359,7 @@ public sealed class Driver : IDisposable
     internal async Task SendCommandAsync<TRequest>(
         TRequest request,
         CancellationToken cancellationToken)
-        where TRequest : struct, ICommand<TRequest>
+        where TRequest : struct, Serial.Commands.ICommand<TRequest>
     {
         await _commandScheduler.SendCommandAsync(request.Frame)
             .WaitAsync(cancellationToken)

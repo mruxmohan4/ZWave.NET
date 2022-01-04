@@ -68,69 +68,74 @@ enum BasicCommand
     Report = 0x03,
 }
 
-internal struct BasicSetCommand : ICommandClass<BasicSetCommand>
+internal struct BasicSetCommand : ICommand<BasicSetCommand>
 {
-    public BasicSetCommand(ReadOnlyMemory<byte> payload)
+    public BasicSetCommand(CommandClassFrame frame)
     {
-        Payload = payload;
+        Frame = frame;
     }
 
     public static CommandClassId CommandClassId => CommandClassId.Basic;
 
-    public ReadOnlyMemory<byte> Payload { get; }
+    public static byte CommandId => (byte)BasicCommand.Set;
 
-    // TODO: Shouldn't be raw payload. Command class and command should be sliced off.
-    public BasicValue Value => Payload.Span[2];
+    public CommandClassFrame Frame { get; }
 
-    public static BasicSetCommand Create(ReadOnlyMemory<byte> payload)
-        => new BasicSetCommand(payload);
+    public BasicValue Value => Frame.CommandParameters.Span[0];
+
+    public static BasicSetCommand Create(CommandClassFrame frame)
+        => new BasicSetCommand(frame);
 }
 
-internal struct BasicGetCommand : ICommandClass<BasicGetCommand>
+internal struct BasicGetCommand : ICommand<BasicGetCommand>
 {
-    public BasicGetCommand(ReadOnlyMemory<byte> payload)
+    public BasicGetCommand(CommandClassFrame frame)
     {
-        Payload = payload;
+        Frame = frame;
     }
 
     public static CommandClassId CommandClassId => CommandClassId.Basic;
 
-    public ReadOnlyMemory<byte> Payload { get; }
+    public static byte CommandId => (byte)BasicCommand.Get;
 
-    public static BasicGetCommand Create(ReadOnlyMemory<byte> payload)
-        => new BasicGetCommand(payload);
+    public CommandClassFrame Frame { get; }
+
+    public static BasicGetCommand Create(CommandClassFrame frame)
+        => new BasicGetCommand(frame);
 }
 
-internal struct BasicReportCommand : ICommandClass<BasicReportCommand>
+internal struct BasicReportCommand : ICommand<BasicReportCommand>
 {
-    public BasicReportCommand(ReadOnlyMemory<byte> payload)
+    public BasicReportCommand(CommandClassFrame frame)
     {
-        Payload = payload;
+        Frame = frame;
     }
 
     public static CommandClassId CommandClassId => CommandClassId.Basic;
 
-    public ReadOnlyMemory<byte> Payload { get; }
+    public static byte CommandId => (byte)BasicCommand.Report;
+
+    public CommandClassFrame Frame { get; }
 
     /// <summary>
     /// The current value of the device hardware
     /// </summary>
-    public BasicValue CurrentValue => Payload.Span[2];
+    public BasicValue CurrentValue => Frame.CommandParameters.Span[0];
 
     /// <summary>
     /// The the target value of an ongoing transition or the most recent transition.
     /// </summary>
-    public BasicValue? TargetValue => Payload.Length > 3
-        ? Payload.Span[3]
+    public BasicValue? TargetValue => Frame.CommandParameters.Length > 1
+        ? Frame.CommandParameters.Span[1]
         : null;
 
     /// <summary>
     /// The time needed to reach the Target Value at the actual transition rate.
     /// </summary>
-    public DurationReport? Duration => Payload.Length > 4
-        ? Payload.Span[4]
+    public DurationReport? Duration => Frame.CommandParameters.Length > 2
+        ? Frame.CommandParameters.Span[2]
         : null;
 
-    public static BasicReportCommand Create(ReadOnlyMemory<byte> payload)
-        => new BasicReportCommand(payload);
+    public static BasicReportCommand Create(CommandClassFrame frame)
+        => new BasicReportCommand(frame);
 }
