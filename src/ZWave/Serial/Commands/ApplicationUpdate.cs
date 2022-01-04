@@ -1,4 +1,5 @@
 ﻿using ZWave.CommandClasses;
+using static ZWave.Serial.Commands.CommandDataParsingHelpers;
 
 namespace ZWave.Serial.Commands;
 
@@ -64,9 +65,9 @@ enum ApplicationUpdateEvent
     NodeInfoSmartStartHomeIdReceivedLongRange = 0x87,
 }
 
-internal struct ApplicationControllerUpdateNodeInfoReceived : ICommand<ApplicationControllerUpdateNodeInfoReceived>
+internal struct ApplicationUpdateRequest : ICommand<ApplicationUpdateRequest>
 {
-    public ApplicationControllerUpdateNodeInfoReceived(DataFrame frame)
+    public ApplicationUpdateRequest(DataFrame frame)
     {
         Frame = frame;
     }
@@ -79,13 +80,53 @@ internal struct ApplicationControllerUpdateNodeInfoReceived : ICommand<Applicati
 
     public ApplicationUpdateEvent Event => (ApplicationUpdateEvent)Frame.CommandParameters.Span[0];
 
-    public byte NodeId => Frame.CommandParameters.Span[1];
+    /// <summary>
+    /// The generic data frame format used with most values of <see cref="Event"/>.
+    /// </summary>
+    /// <remarks>
+    /// This only applies with specific values for <see cref="Event"/>. Using this with the wrong
+    /// event type at best lead to garbled data and at worst lead to out of range exceptions.
+    /// </remarks>
+    public ApplicationUpdateGeneric Generic => new ApplicationUpdateGeneric(Frame.CommandParameters[1..]);
 
-    public byte BasicDeviceClass => Frame.CommandParameters.Span[3];
+    /// <summary>
+    /// The data frame format when the <see cref="Event"/> is <see cref="ApplicationUpdateEvent.NodeInfoSmartStartHomeIdReceived"/>
+    /// or <see cref="ApplicationUpdateEvent.NodeInfoSmartStartHomeIdReceivedLongRange"/>
+    /// </summary>
+    /// <remarks>
+    /// This only applies with specific values for <see cref="Event"/>. Using this with the wrong
+    /// event type at best lead to garbled data and at worst lead to out of range exceptions.
+    /// </remarks>
+    public ApplicationUpdateSmartStartPrime SmartStartPrime => new ApplicationUpdateSmartStartPrime(Frame.CommandParameters[1..]);
 
-    public byte GenericDeviceClass => Frame.CommandParameters.Span[4];
+    /// <summary>
+    /// The data frame format when the <see cref="Event"/> is <see cref="ApplicationUpdateEvent.IncludedNodeInfoReceived"/>.
+    /// </summary>
+    /// <remarks>
+    /// This only applies with specific values for <see cref="Event"/>. Using this with the wrong
+    /// event type at best lead to garbled data and at worst lead to out of range exceptions.
+    /// </remarks>
+    public ApplicationUpdateSmartStartIncludedNodeInfo SmartStartIncludedNodeInfo => new ApplicationUpdateSmartStartIncludedNodeInfo(Frame.CommandParameters[1..]);
 
-    public byte SpecificDeviceClass => Frame.CommandParameters.Span[5];
+    public static ApplicationUpdateRequest Create(DataFrame frame) => new ApplicationUpdateRequest(frame);
+}
+
+internal struct ApplicationUpdateGeneric
+{
+    public ApplicationUpdateGeneric(ReadOnlyMemory<byte> data)
+    {
+        Data = data;
+    }
+
+    public ReadOnlyMemory<byte> Data { get; }
+
+    public byte NodeId => Data.Span[0];
+
+    public byte BasicDeviceClass => Data.Span[2];
+
+    public byte GenericDeviceClass => Data.Span[3];
+
+    public byte SpecificDeviceClass => Data.Span[4];
 
     /// <summary>
     /// The list of non-secure implemented Command Classes by the remote node.
@@ -94,28 +135,68 @@ internal struct ApplicationControllerUpdateNodeInfoReceived : ICommand<Applicati
     {
         get
         {
-            byte length = Frame.CommandParameters.Span[2];
-            ReadOnlySpan<byte> allCommandClasses = Frame.CommandParameters.Span.Slice(6, length);
-
-            var commandClassInfos = new List<CommandClassInfo>(allCommandClasses.Length);
-            bool isSupported = true;
-            bool isControlled = false;
-            for (int i = 0; i < allCommandClasses.Length; i++)
-            {
-                var commandClassId = (CommandClassId)allCommandClasses[i];
-                if (commandClassId == CommandClassId.SupportControlMark)
-                {
-                    isSupported = false;
-                    isControlled = true;
-                    continue;
-                }
-
-                commandClassInfos.Add(new CommandClassInfo(commandClassId, isSupported, isControlled));
-            }
-
-            return commandClassInfos;
+            byte length = Data.Span[1];
+            ReadOnlySpan<byte> allCommandClasses = Data.Span.Slice(5, length);
+            return ParseCommandClasses(allCommandClasses);
         }
     }
+}
 
-    public static ApplicationControllerUpdateNodeInfoReceived Create(DataFrame frame) => new ApplicationControllerUpdateNodeInfoReceived(frame);
+internal struct ApplicationUpdateSmartStartPrime
+{
+    public ApplicationUpdateSmartStartPrime(ReadOnlyMemory<byte> data)
+    {
+        Data = data;
+    }
+
+    public ReadOnlyMemory<byte> Data { get; }
+
+    public byte NodeId => Data.Span[0];
+
+    public ReceivedStatus ReceivedStatus => (ReceivedStatus)Data.Span[1];
+
+    /// <summary>
+    /// The NWI HomeID on which the SmartStart Prime Command was received.
+    /// </summary>
+    public uint HomeId => Data.Span[2..6].ToUInt32BE();
+
+    public byte BasicDeviceClass => Data.Span[7];
+
+    public byte GenericDeviceClass => Data.Span[8];
+
+    public byte SpecificDeviceClass => Data.Span[9];
+
+    /// <summary>
+    /// The list of non-secure implemented Command Classes by the remote node.
+    /// </summary>
+    public IReadOnlyList<CommandClassInfo> CommandClasses
+    {
+        get
+        {
+            byte length = Data.Span[6];
+            ReadOnlySpan<byte> allCommandClasses = Data.Span.Slice(10, length);
+            return ParseCommandClasses(allCommandClasses);
+        }
+    }
+}
+
+internal struct ApplicationUpdateSmartStartIncludedNodeInfo
+{
+    public ApplicationUpdateSmartStartIncludedNodeInfo(ReadOnlyMemory<byte> data)
+    {
+        Data = data;
+    }
+
+    public ReadOnlyMemory<byte> Data { get; }
+
+    public byte NodeId => Data.Span[0];
+
+    // Byte 1 is reserved
+
+    public ReceivedStatus ReceivedStatus => (ReceivedStatus)Data.Span[2];
+
+    /// <summary>
+    /// The NWI HomeID for which the SmartStart Inclusion Node Information Frame was received
+    /// </summary>
+    public uint HomeId => Data.Span[3..7].ToUInt32BE();
 }

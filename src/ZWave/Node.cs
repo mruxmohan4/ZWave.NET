@@ -106,10 +106,10 @@ public sealed class Node
         cancellationToken);
     }
 
-    internal void NotifyNodeInfoReceived(ApplicationControllerUpdateNodeInfoReceived nodeInfoReceived)
+    internal void NotifyNodeInfoReceived(ApplicationUpdateRequest nodeInfoReceived)
     {
         // TODO: Log
-        foreach (CommandClassInfo commandClassInfo in nodeInfoReceived.CommandClasses)
+        foreach (CommandClassInfo commandClassInfo in nodeInfoReceived.Generic.CommandClasses)
         {
             AddCommandClassInfo(commandClassInfo);
         }

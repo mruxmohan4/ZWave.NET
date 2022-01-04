@@ -185,36 +185,49 @@ public sealed class Driver : IDisposable
                 // Immediately send the ACK
                 SendFrame(Frame.ACK);
 
-                if (frame.CommandId == CommandId.SerialApiStarted
-                    && _serialApiStartedTaskCompletionSource != null)
+                // Try handling unsolicited requests first, then check if it's a callback we're waiting for.
+                switch (frame.CommandId)
                 {
-                    _serialApiStartedTaskCompletionSource.SetResult(SerialApiStartedRequest.Create(frame));
-                    return;
-                }
-
-                // TODO: Do this better
-                if (frame.CommandId == CommandId.ApplicationUpdate
-                    && frame.CommandParameters.Span[0] == (byte)ApplicationUpdateEvent.NodeInfoReceived)
-                {
-                    var nodeInfoReceived = ApplicationControllerUpdateNodeInfoReceived.Create(frame);
-                    var node = Controller.Nodes[nodeInfoReceived.NodeId];
-                    node.NotifyNodeInfoReceived(nodeInfoReceived);
-                }
-
-                // This assumes the first command parameter is always the session id. If this is ever
-                // found not to be the case, we'll need to add the callback index to the key.
-                var callbackKey = new UnresolvedCallbackKey(frame.CommandId, frame.CommandParameters.Span[0]);
-                lock (_callbackLock)
-                {
-                    if (_unresolvedCallbacks.TryGetValue(callbackKey, out TaskCompletionSource<DataFrame>? tcs))
+                    case CommandId.SerialApiStarted:
                     {
-                        tcs.SetResult(frame);
-                        _unresolvedCallbacks.Remove(callbackKey);
-                        return;
+                        // Unblock the task. TODO: Log if null (we got it unexpectedly)
+                        if (_serialApiStartedTaskCompletionSource != null)
+                        {
+                            _serialApiStartedTaskCompletionSource.SetResult(SerialApiStartedRequest.Create(frame));
+                        }
+
+                        break;
+                    }
+                    case CommandId.ApplicationUpdate:
+                    {
+                        var nodeInfoReceived = ApplicationUpdateRequest.Create(frame);
+                        if (nodeInfoReceived.Event == ApplicationUpdateEvent.NodeInfoReceived)
+                        {
+                            var node = Controller.Nodes[nodeInfoReceived.Generic.NodeId];
+                            node.NotifyNodeInfoReceived(nodeInfoReceived);
+                        }
+
+                        break;
+                    }
+                    default:
+                    {
+                        // This assumes the first command parameter is always the session id. If this is ever
+                        // found not to be the case, we'll need to add the callback index to the key.
+                        var callbackKey = new UnresolvedCallbackKey(frame.CommandId, frame.CommandParameters.Span[0]);
+                        lock (_callbackLock)
+                        {
+                            if (_unresolvedCallbacks.TryGetValue(callbackKey, out TaskCompletionSource<DataFrame>? tcs))
+                            {
+                                tcs.SetResult(frame);
+                                _unresolvedCallbacks.Remove(callbackKey);
+                                return;
+                            }
+                        }
+
+                        break;
                     }
                 }
 
-                // TODO: Handle unsolicited requests
                 break;
             }
             case DataFrameType.RES:
