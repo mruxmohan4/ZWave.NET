@@ -1,6 +1,6 @@
 ﻿namespace ZWave.CommandClasses;
 
-internal struct CommandClassFrame
+public readonly struct CommandClassFrame
 {
     public CommandClassFrame(ReadOnlyMemory<byte> data)
     {
@@ -19,4 +19,16 @@ internal struct CommandClassFrame
     public byte CommandId => Data.Span[1];
 
     public ReadOnlyMemory<byte> CommandParameters => Data[2..];
+
+    public static CommandClassFrame Create(CommandClassId commandClassId, byte commandId)
+        => Create(commandClassId, commandId, ReadOnlySpan<byte>.Empty);
+
+    public static CommandClassFrame Create(CommandClassId commandClassId, byte commandId, ReadOnlySpan<byte> commandParameters)
+    {
+        byte[] data = new byte[2 + commandParameters.Length];
+        data[0] = (byte)commandClassId;
+        data[1] = commandId;
+        commandParameters.CopyTo(data[2..]);
+        return new CommandClassFrame(data);
+    }
 }

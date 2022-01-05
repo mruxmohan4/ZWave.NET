@@ -24,4 +24,9 @@ public enum ZWaveErrorCode
     /// A ZWave command failed
     /// </summary>
     CommandFailed,
+
+    /// <summary>
+    /// The command class is not supported by the node.
+    /// </summary>
+    CommandClassNotSupported,
 }

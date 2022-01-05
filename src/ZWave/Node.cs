@@ -12,7 +12,7 @@ public sealed class Node
 
     private readonly AsyncAutoResetEvent _nodeInfoRecievedEvent = new AsyncAutoResetEvent();
 
-    private readonly Dictionary<CommandClassId, CommandClassInfo> _commandClasses = new Dictionary<CommandClassId, CommandClassInfo>();
+    private readonly Dictionary<CommandClassId, CommandClass> _commandClasses = new Dictionary<CommandClassId, CommandClass>();
 
     private Task? _interviewTask;
 
@@ -43,7 +43,21 @@ public sealed class Node
 
     public bool SupportsSecurity { get; private set; }
 
-    public IReadOnlyDictionary<CommandClassId, CommandClassInfo> CommandClasses => _commandClasses;
+    // TODO: Expose some indication of which command classes are supported by this node to the user.
+    ////public IReadOnlyDictionary<CommandClassId, CommandClassInfo> CommandClassInfos => _commandClasses;
+
+    public TCommandClass GetCommandClass<TCommandClass>()
+        where TCommandClass : CommandClass
+    {
+        CommandClassId commandClassId = CommandClassFactory.GetCommandClassId<TCommandClass>();
+
+        if (!_commandClasses.TryGetValue(commandClassId, out CommandClass? commandClass))
+        {
+            throw new ZWaveException(ZWaveErrorCode.CommandClassNotSupported, $"The command class {commandClassId} is not supported by this node.");
+        }
+
+        return (TCommandClass)commandClass;
+    }
 
     /// <summary>
     /// Interviews a node.
@@ -111,32 +125,42 @@ public sealed class Node
         // TODO: Log
         foreach (CommandClassInfo commandClassInfo in nodeInfoReceived.Generic.CommandClasses)
         {
-            AddCommandClassInfo(commandClassInfo);
+            AddCommandClass(commandClassInfo);
         }
 
         _nodeInfoRecievedEvent.Set();
     }
 
-    private void AddCommandClassInfo(CommandClassInfo newInfo)
+    private void AddCommandClass(CommandClassInfo commandClassInfo)
     {
         lock(_commandClasses)
         {
-            if (_commandClasses.TryGetValue(newInfo.CommandClass, out CommandClassInfo existingInfo))
+            if (_commandClasses.TryGetValue(commandClassInfo.CommandClass, out CommandClass? existingCommandClass))
             {
-                _commandClasses[newInfo.CommandClass] = new CommandClassInfo(
-                    newInfo.CommandClass,
-                    newInfo.IsSupported || existingInfo.IsSupported,
-                    newInfo.IsControlled || existingInfo.IsControlled);
+                existingCommandClass.MergeInfo(commandClassInfo);
             }
             else
             {
-                _commandClasses.Add(newInfo.CommandClass, newInfo);
+                CommandClass? commandClass = CommandClassFactory.Create(commandClassInfo, _driver, this);
+
+                // If null, that means we just haven't implemented it yet.
+                if (commandClass != null)
+                {
+                    _commandClasses.Add(commandClassInfo.CommandClass, commandClass);
+                }
             }
         }
     }
 
     internal void ProcessCommand(CommandClassFrame frame)
     {
-        // TODO
+        if (_commandClasses.TryGetValue(frame.CommandClassId, out CommandClass? commandClass))
+        {
+            commandClass.ProcessCommand(frame);
+        }
+        else
+        {
+            // TODO: Log
+        }
     }
 }

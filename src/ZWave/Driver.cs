@@ -366,6 +366,45 @@ public sealed class Driver : IDisposable
             .ConfigureAwait(false);
     }
 
+    internal async Task SendCommandAsync<TCommand>(
+        TCommand request,
+        byte nodeId,
+        CancellationToken cancellationToken)
+        where TCommand : struct, CommandClasses.ICommand<TCommand>
+    {
+        const TransmissionOptions transmissionOptions = TransmissionOptions.ACK | TransmissionOptions.AutoRoute | TransmissionOptions.Explore;
+        byte sessionId = GetNextSessionId();
+        SendDataRequest sendDataRequest = SendDataRequest.Create(nodeId, request.Frame.Data.Span, transmissionOptions, sessionId);
+        ResponseStatusResponse response = await SendCommandAsync<SendDataRequest, ResponseStatusResponse>(sendDataRequest, cancellationToken)
+            .ConfigureAwait(false);
+        if (!response.WasRequestAccepted)
+        {
+            throw new ZWaveException(ZWaveErrorCode.CommandFailed, "Response status indicated failure");
+        }
+
+        TaskCompletionSource<DataFrame> tcs = new TaskCompletionSource<DataFrame>();
+        var callbackKey = new UnresolvedCallbackKey(CommandId.SendData, sessionId);
+        lock (_callbackLock)
+        {
+            _unresolvedCallbacks.Add(callbackKey, tcs);
+        }
+
+        // Intentionally not awaiting this task. The callback only contains a transmit report,
+        // which the caller doesn't care about.
+        _ = tcs.Task.ContinueWith(task =>
+        {
+            // The unresolved callback tasks currently never get cancelled or fault. If this changes,
+            // consider what to do here in those cases.
+            if (task.IsCompletedSuccessfully)
+            {
+                DataFrame callbackFrame = task.Result;
+                SendDataCallback callback = SendDataCallback.Create(callbackFrame);
+
+                // TODO: Consume the transmit report.
+            }
+        });
+    }
+
     private void SendFrame(Frame frame)
     {
         // TODO: Make async? Frames are pretty small, so maybe not?

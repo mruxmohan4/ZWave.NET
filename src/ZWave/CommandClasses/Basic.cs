@@ -6,7 +6,7 @@
 /// <remarks>
 /// As defined by SDS13781 Table 21
 /// </remarks>
-internal struct BasicValue
+public struct BasicValue
 {
     public BasicValue(byte value)
     {
@@ -48,9 +48,79 @@ internal struct BasicValue
     };
 
     public static implicit operator BasicValue(byte b) => new BasicValue(b);
+
+    public static implicit operator BasicValue(int i) => new BasicValue(i);
+
+    public static implicit operator BasicValue(bool b) => new BasicValue(b);
 }
 
-enum BasicCommand
+public sealed class BasicCommandClass : CommandClass
+{
+    public BasicCommandClass(
+        CommandClassInfo info,
+        Driver driver,
+        Node node)
+        : base(info, driver, node)
+    {
+    }
+
+    /// <summary>
+    /// The current value of the device hardware
+    /// </summary>
+    public BasicValue? CurrentValue { get; private set; }
+
+    /// <summary>
+    /// The the target value of an ongoing transition or the most recent transition.
+    /// </summary>
+    public BasicValue? TargetValue { get; private set; }
+
+    /// <summary>
+    /// The time needed to reach the Target Value at the actual transition rate.
+    /// </summary>
+    public DurationReport? Duration { get; private set; }
+
+    /// <summary>
+    /// Request the status of a supporting device
+    /// </summary>
+    public async Task GetAsync(CancellationToken cancellationToken)
+    {
+        var command = BasicGetCommand.Create();
+        await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
+        await AwaitNextReportAsync<BasicReportCommand>(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Set a value in a supporting device
+    /// </summary>
+    public async Task SetAsync(BasicValue targetValue, CancellationToken cancellationToken)
+    {
+        var command = BasicSetCommand.Create(targetValue);
+        await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    protected override void ProcessCommandCore(CommandClassFrame frame)
+    {
+        switch ((BasicCommand)frame.CommandId)
+        {
+            case BasicCommand.Set:
+            case BasicCommand.Get:
+            {
+                // We don't expect to recieve these commands
+                break;
+            }
+            case BasicCommand.Report:
+            {
+                var command = new BasicReportCommand(frame);
+                CurrentValue = command.CurrentValue;
+                TargetValue = command.TargetValue;
+                Duration = command.Duration;
+                break;
+            }
+        }
+    }
+}
+
+internal enum BasicCommand
 {
     /// <summary>
     /// Set a value in a supporting device
@@ -83,6 +153,15 @@ internal struct BasicSetCommand : ICommand<BasicSetCommand>
 
     public BasicValue Value => Frame.CommandParameters.Span[0];
 
+    public static BasicGetCommand Create(BasicValue value)
+    {
+        Span<byte> commandParameters = stackalloc byte[1];
+        commandParameters[0] = value.Value;
+
+        CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId, commandParameters);
+        return new BasicGetCommand(frame);
+    }
+
     public static BasicSetCommand Create(CommandClassFrame frame)
         => new BasicSetCommand(frame);
 }
@@ -99,6 +178,12 @@ internal struct BasicGetCommand : ICommand<BasicGetCommand>
     public static byte CommandId => (byte)BasicCommand.Get;
 
     public CommandClassFrame Frame { get; }
+
+    public static BasicGetCommand Create()
+    {
+        CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId);
+        return new BasicGetCommand(frame);
+    }
 
     public static BasicGetCommand Create(CommandClassFrame frame)
         => new BasicGetCommand(frame);
