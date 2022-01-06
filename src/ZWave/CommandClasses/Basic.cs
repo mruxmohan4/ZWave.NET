@@ -119,109 +119,100 @@ public sealed class BasicCommandClass : CommandClass
             }
         }
     }
-}
 
-internal enum BasicCommand
-{
-    /// <summary>
-    /// Set a value in a supporting device
-    /// </summary>
-    Set = 0x01,
-
-    /// <summary>
-    /// Request the status of a supporting device
-    /// </summary>
-    Get = 0x02,
-
-    /// <summary>
-    /// Advertise the status of the primary functionality of the device.
-    /// </summary>
-    Report = 0x03,
-}
-
-internal struct BasicSetCommand : ICommand<BasicSetCommand>
-{
-    public BasicSetCommand(CommandClassFrame frame)
+    private enum BasicCommand
     {
-        Frame = frame;
+        /// <summary>
+        /// Set a value in a supporting device
+        /// </summary>
+        Set = 0x01,
+
+        /// <summary>
+        /// Request the status of a supporting device
+        /// </summary>
+        Get = 0x02,
+
+        /// <summary>
+        /// Advertise the status of the primary functionality of the device.
+        /// </summary>
+        Report = 0x03,
     }
 
-    public static CommandClassId CommandClassId => CommandClassId.Basic;
-
-    public static byte CommandId => (byte)BasicCommand.Set;
-
-    public CommandClassFrame Frame { get; }
-
-    public BasicValue Value => Frame.CommandParameters.Span[0];
-
-    public static BasicGetCommand Create(BasicValue value)
+    private struct BasicSetCommand : ICommand<BasicSetCommand>
     {
-        Span<byte> commandParameters = stackalloc byte[1];
-        commandParameters[0] = value.Value;
+        public BasicSetCommand(CommandClassFrame frame)
+        {
+            Frame = frame;
+        }
 
-        CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId, commandParameters);
-        return new BasicGetCommand(frame);
+        public static CommandClassId CommandClassId => CommandClassId.Basic;
+
+        public static byte CommandId => (byte)BasicCommand.Set;
+
+        public CommandClassFrame Frame { get; }
+
+        public BasicValue Value => Frame.CommandParameters.Span[0];
+
+        public static BasicGetCommand Create(BasicValue value)
+        {
+            Span<byte> commandParameters = stackalloc byte[1];
+            commandParameters[0] = value.Value;
+
+            CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId, commandParameters);
+            return new BasicGetCommand(frame);
+        }
     }
 
-    public static BasicSetCommand Create(CommandClassFrame frame)
-        => new BasicSetCommand(frame);
-}
-
-internal struct BasicGetCommand : ICommand<BasicGetCommand>
-{
-    public BasicGetCommand(CommandClassFrame frame)
+    private struct BasicGetCommand : ICommand<BasicGetCommand>
     {
-        Frame = frame;
+        public BasicGetCommand(CommandClassFrame frame)
+        {
+            Frame = frame;
+        }
+
+        public static CommandClassId CommandClassId => CommandClassId.Basic;
+
+        public static byte CommandId => (byte)BasicCommand.Get;
+
+        public CommandClassFrame Frame { get; }
+
+        public static BasicGetCommand Create()
+        {
+            CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId);
+            return new BasicGetCommand(frame);
+        }
     }
 
-    public static CommandClassId CommandClassId => CommandClassId.Basic;
-
-    public static byte CommandId => (byte)BasicCommand.Get;
-
-    public CommandClassFrame Frame { get; }
-
-    public static BasicGetCommand Create()
+    private struct BasicReportCommand : ICommand<BasicReportCommand>
     {
-        CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId);
-        return new BasicGetCommand(frame);
+        public BasicReportCommand(CommandClassFrame frame)
+        {
+            Frame = frame;
+        }
+
+        public static CommandClassId CommandClassId => CommandClassId.Basic;
+
+        public static byte CommandId => (byte)BasicCommand.Report;
+
+        public CommandClassFrame Frame { get; }
+
+        /// <summary>
+        /// The current value of the device hardware
+        /// </summary>
+        public BasicValue CurrentValue => Frame.CommandParameters.Span[0];
+
+        /// <summary>
+        /// The the target value of an ongoing transition or the most recent transition.
+        /// </summary>
+        public BasicValue? TargetValue => Frame.CommandParameters.Length > 1
+            ? Frame.CommandParameters.Span[1]
+            : null;
+
+        /// <summary>
+        /// The time needed to reach the Target Value at the actual transition rate.
+        /// </summary>
+        public DurationReport? Duration => Frame.CommandParameters.Length > 2
+            ? Frame.CommandParameters.Span[2]
+            : null;
     }
-
-    public static BasicGetCommand Create(CommandClassFrame frame)
-        => new BasicGetCommand(frame);
-}
-
-internal struct BasicReportCommand : ICommand<BasicReportCommand>
-{
-    public BasicReportCommand(CommandClassFrame frame)
-    {
-        Frame = frame;
-    }
-
-    public static CommandClassId CommandClassId => CommandClassId.Basic;
-
-    public static byte CommandId => (byte)BasicCommand.Report;
-
-    public CommandClassFrame Frame { get; }
-
-    /// <summary>
-    /// The current value of the device hardware
-    /// </summary>
-    public BasicValue CurrentValue => Frame.CommandParameters.Span[0];
-
-    /// <summary>
-    /// The the target value of an ongoing transition or the most recent transition.
-    /// </summary>
-    public BasicValue? TargetValue => Frame.CommandParameters.Length > 1
-        ? Frame.CommandParameters.Span[1]
-        : null;
-
-    /// <summary>
-    /// The time needed to reach the Target Value at the actual transition rate.
-    /// </summary>
-    public DurationReport? Duration => Frame.CommandParameters.Length > 2
-        ? Frame.CommandParameters.Span[2]
-        : null;
-
-    public static BasicReportCommand Create(CommandClassFrame frame)
-        => new BasicReportCommand(frame);
 }
