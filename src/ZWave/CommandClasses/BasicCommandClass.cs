@@ -153,13 +153,13 @@ public sealed class BasicCommandClass : CommandClass
 
         public BasicValue Value => Frame.CommandParameters.Span[0];
 
-        public static BasicGetCommand Create(BasicValue value)
+        public static BasicSetCommand Create(BasicValue value)
         {
             Span<byte> commandParameters = stackalloc byte[1];
             commandParameters[0] = value.Value;
 
             CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId, commandParameters);
-            return new BasicGetCommand(frame);
+            return new BasicSetCommand(frame);
         }
     }
 

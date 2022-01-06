@@ -43,8 +43,19 @@ public sealed class Node
 
     public bool SupportsSecurity { get; private set; }
 
-    // TODO: Expose some indication of which command classes are supported by this node to the user.
-    ////public IReadOnlyDictionary<CommandClassId, CommandClassInfo> CommandClassInfos => _commandClasses;
+    public IReadOnlyDictionary<CommandClassId, CommandClassInfo> CommandClasses
+    {
+        get
+        {
+            var commandClassInfos = new Dictionary<CommandClassId, CommandClassInfo>(_commandClasses.Count);
+            foreach (KeyValuePair<CommandClassId, CommandClass> pair in _commandClasses)
+            {
+                commandClassInfos.Add(pair.Key, pair.Value.Info);
+            }
+
+            return commandClassInfos;
+        }
+    }
 
     public TCommandClass GetCommandClass<TCommandClass>()
         where TCommandClass : CommandClass

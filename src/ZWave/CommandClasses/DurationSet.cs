@@ -24,13 +24,13 @@ internal struct DurationSet
         // 1 second (0x01) to 127 seconds (0x7F) in 1 second resolution.
         else if (duration <= TimeSpan.FromSeconds(127))
         {
-            Value = (byte)duration.TotalSeconds;
+            Value = (byte)Math.Round(duration.TotalSeconds);
         }
 
         // 1 minute (0x80) to 127 minutes (0xFE) in 1 minute resolution.
         else if (duration <= TimeSpan.FromMinutes(127))
         {
-            Value = (byte)(duration.TotalMinutes + 0x7f);
+            Value = (byte)(Math.Round(duration.TotalMinutes) + 0x7f);
         }
 
         else
