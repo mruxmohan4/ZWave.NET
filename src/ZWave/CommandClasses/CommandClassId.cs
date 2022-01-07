@@ -113,7 +113,14 @@ public enum CommandClassId : byte
     Hail = 0x82,
     WakeUp = 0x84,
     Association = 0x85,
+
+    /// <summary>
+    /// The Version Command Class may be used to obtain the Z-Wave library type, the Z-Wave protocol version used by the
+    /// application, the individual command class versions used by the application and the vendor specific application version
+    /// from a Z-Wave enabled device.
+    /// </summary>
     Version = 0x86,
+    
     Indicator = 0x87,
     Proprietary = 0x88,
     Language = 0x89,

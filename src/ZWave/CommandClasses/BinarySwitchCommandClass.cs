@@ -66,7 +66,7 @@ public sealed class BinarySwitchCommandClass : CommandClass
         }
     }
 
-    private enum BinarySwitchCommand
+    private enum BinarySwitchCommand : byte
     {
         /// <summary>
         /// Set the On/Off state at the receiving node.

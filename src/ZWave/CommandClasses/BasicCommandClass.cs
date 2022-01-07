@@ -120,7 +120,7 @@ public sealed class BasicCommandClass : CommandClass
         }
     }
 
-    private enum BasicCommand
+    private enum BasicCommand : byte
     {
         /// <summary>
         /// Set a value in a supporting device
