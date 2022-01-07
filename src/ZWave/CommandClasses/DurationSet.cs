@@ -6,7 +6,7 @@
 /// <remarks>
 /// As defined by SDS13781 Table 7
 /// </remarks>
-internal struct DurationSet
+public struct DurationSet
 {
     public DurationSet(byte value)
     {

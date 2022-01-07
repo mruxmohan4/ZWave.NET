@@ -13,7 +13,12 @@ public enum CommandClassId : byte
     ControllerReplication = 0x21,
     ApplicationStatus = 0x22,
     ZIp = 0x23,
+
+    /// <summary>
+    /// The Binary Switch Command Class is used to control the On/Off state of supporting nodes.
+    /// </summary>
     BinarySwitch = 0x25,
+
     MultilevelSwitch = 0x26,
     AllSwitch = 0x27,
     BinaryToggleSwitch = 0x28,
@@ -84,7 +89,11 @@ public enum CommandClassId : byte
     HumidityControlOperatingState = 0x6e,
     EntryControl = 0x6f,
     Configuration = 0x70,
-    Alarm = 0x71,
+
+    /// <summary>
+    /// The Notification Command Class is used to advertise events or states, such as movement detection, door open/close
+    /// or system failure
+    /// </summary>
     Notification = 0x71,
     ManufacturerSpecific = 0x72,
     Powerlevel = 0x73,

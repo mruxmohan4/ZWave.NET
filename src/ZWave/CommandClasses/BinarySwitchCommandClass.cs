@@ -1,9 +1,9 @@
 ﻿namespace ZWave.CommandClasses;
 
 [CommandClass(CommandClassId.BinarySwitch)]
-internal class BinarySwitchCommandClass : CommandClass
+public sealed class BinarySwitchCommandClass : CommandClass
 {
-    public BinarySwitchCommandClass(CommandClassInfo info, Driver driver, Node node)
+    internal BinarySwitchCommandClass(CommandClassInfo info, Driver driver, Node node)
         : base(info, driver, node)
     {
     }
@@ -91,13 +91,11 @@ internal class BinarySwitchCommandClass : CommandClass
             Frame = frame;
         }
 
-        public static CommandClassId CommandClassId => CommandClassId.Basic;
+        public static CommandClassId CommandClassId => CommandClassId.BinarySwitch;
 
         public static byte CommandId => (byte)BinarySwitchCommand.Set;
 
         public CommandClassFrame Frame { get; }
-
-        public BasicValue Value => Frame.CommandParameters.Span[0];
 
         public static BinarySwitchSetCommand Create(bool value, DurationSet? duration)
         {
@@ -120,7 +118,7 @@ internal class BinarySwitchCommandClass : CommandClass
             Frame = frame;
         }
 
-        public static CommandClassId CommandClassId => CommandClassId.Basic;
+        public static CommandClassId CommandClassId => CommandClassId.BinarySwitch;
 
         public static byte CommandId => (byte)BinarySwitchCommand.Get;
 
@@ -140,7 +138,7 @@ internal class BinarySwitchCommandClass : CommandClass
             Frame = frame;
         }
 
-        public static CommandClassId CommandClassId => CommandClassId.Basic;
+        public static CommandClassId CommandClassId => CommandClassId.BinarySwitch;
 
         public static byte CommandId => (byte)BinarySwitchCommand.Report;
 

@@ -57,7 +57,7 @@ public struct BasicValue
 [CommandClass(CommandClassId.Basic)]
 public sealed class BasicCommandClass : CommandClass
 {
-    public BasicCommandClass(
+    internal BasicCommandClass(
         CommandClassInfo info,
         Driver driver,
         Node node)
