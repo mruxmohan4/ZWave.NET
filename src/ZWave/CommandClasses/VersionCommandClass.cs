@@ -1,6 +1,4 @@
-﻿using ZWave.Serial;
-
-namespace ZWave.CommandClasses;
+﻿namespace ZWave.CommandClasses;
 
 public enum ZWaveLibraryType : byte
 {
@@ -32,17 +30,9 @@ public enum ZWaveLibraryType : byte
 [CommandClass(CommandClassId.Version)]
 public sealed class VersionCommandClass : CommandClass
 {
-    private readonly Dictionary<CommandClassId, byte> _commandClassVersions = new Dictionary<CommandClassId, byte>();
-
     public VersionCommandClass(CommandClassInfo info, Driver driver, Node node)
         : base(info, driver, node)
     {
-        foreach (KeyValuePair<CommandClassId, CommandClassInfo> pair in node.CommandClasses)
-        {
-            // Assume any implemented command class is at least version 1.
-            // TODO: This should come from CommandClassInfo?
-            _commandClassVersions.Add(pair.Key, 1);
-        }
     }
 
     /// <summary>
@@ -64,12 +54,6 @@ public sealed class VersionCommandClass : CommandClass
     /// A value which is unique to this particular version of the product
     /// </summary>
     public byte? HardwareVersion { get; private set; }
-
-    /// <summary>
-    /// The implemented command class version from a device. Until <see cref="GetCommandClassAsync(CommandClassId, CancellationToken)"/>
-    /// is called for a given command class, the assumed version will be 1.
-    /// </summary>
-    public IReadOnlyDictionary<CommandClassId, byte> CommandClassVersions => _commandClassVersions;
 
     /// <summary>
     /// Whether the Z-Wave Software Get Command is supported.
@@ -162,6 +146,18 @@ public sealed class VersionCommandClass : CommandClass
         await AwaitNextReportAsync<VersionZWaveSoftwareReportCommand>(cancellationToken).ConfigureAwait(false);
     }
 
+    protected override async Task InitializeCoreAsync(CancellationToken cancellationToken)
+    {
+        await base.InitializeCoreAsync(cancellationToken);
+
+        // Populate the version of every command class the node implements
+        foreach (KeyValuePair<CommandClassId, CommandClassInfo> pair in Node.CommandClasses)
+        {
+            CommandClassId commandClassId = pair.Key;
+            await GetCommandClassAsync(commandClassId, cancellationToken);
+        }
+    }
+
     protected override void ProcessCommandCore(CommandClassFrame frame)
     {
         switch ((VersionCommand)frame.CommandId)
@@ -186,11 +182,8 @@ public sealed class VersionCommandClass : CommandClass
             case VersionCommand.CommandClassReport:
             {
                 var command = new VersionCommandClassReportCommand(frame);
-                var commandClassId = command.RequestedCommandClass;
-                var commandClassVersion = command.CommandClassVersion;
-                _commandClassVersions[commandClassId] = commandClassVersion;
-
-                // TODO: Update the Node
+                var commandClass = Node.GetCommandClass(command.RequestedCommandClass);
+                commandClass.SetVersion(command.CommandClassVersion);
                 break;
             }
             case VersionCommand.CapabilitiesReport:

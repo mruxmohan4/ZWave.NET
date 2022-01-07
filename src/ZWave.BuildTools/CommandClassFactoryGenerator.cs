@@ -93,10 +93,10 @@ internal static class CommandClassFactory
 
         sb.Append(@"    };
 
-    public static CommandClass? Create(CommandClassInfo info, Driver driver, Node node)
+    public static CommandClass Create(CommandClassInfo info, Driver driver, Node node)
         => Constructors.TryGetValue(info.CommandClass, out Func<CommandClassInfo, Driver, Node, CommandClass>? constructor)
             ? constructor(info, driver, node)
-            : null;
+            : new NotImplementedCommandClass(info, driver, node);
 
     public static CommandClassId GetCommandClassId<TCommandClass>()
         where TCommandClass : CommandClass

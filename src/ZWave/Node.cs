@@ -47,10 +47,14 @@ public sealed class Node
     {
         get
         {
-            var commandClassInfos = new Dictionary<CommandClassId, CommandClassInfo>(_commandClasses.Count);
-            foreach (KeyValuePair<CommandClassId, CommandClass> pair in _commandClasses)
+            Dictionary<CommandClassId, CommandClassInfo> commandClassInfos;
+            lock (_commandClasses)
             {
-                commandClassInfos.Add(pair.Key, pair.Value.Info);
+                commandClassInfos = new Dictionary<CommandClassId, CommandClassInfo>(_commandClasses.Count);
+                foreach (KeyValuePair<CommandClassId, CommandClass> pair in _commandClasses)
+                {
+                    commandClassInfos.Add(pair.Key, pair.Value.Info);
+                }
             }
 
             return commandClassInfos;
@@ -61,13 +65,21 @@ public sealed class Node
         where TCommandClass : CommandClass
     {
         CommandClassId commandClassId = CommandClassFactory.GetCommandClassId<TCommandClass>();
+        return (TCommandClass)GetCommandClass(commandClassId);
+    }
 
-        if (!_commandClasses.TryGetValue(commandClassId, out CommandClass? commandClass))
+    public CommandClass GetCommandClass(CommandClassId commandClassId)
+    {
+        CommandClass? commandClass;
+        lock (_commandClasses)
         {
-            throw new ZWaveException(ZWaveErrorCode.CommandClassNotSupported, $"The command class {commandClassId} is not supported by this node.");
+            if (!_commandClasses.TryGetValue(commandClassId, out commandClass))
+            {
+                throw new ZWaveException(ZWaveErrorCode.CommandClassNotImplemented, $"The command class {commandClassId} is not implemented by this node.");
+            }
         }
 
-        return (TCommandClass)commandClass;
+        return commandClass;
     }
 
     /// <summary>
@@ -111,18 +123,37 @@ public sealed class Node
                 SupportsSecurity = getNodeProtocolInfoResponse.SupportsSecurity;
                 // TODO: Log
 
-                // We don't need to query some information for the controller node
-                if (Id != _driver.Controller.NodeId)
+                // This is all we need for the controller node
+                if (Id == _driver.Controller.NodeId)
                 {
-                    // This request causes unsolicited requests from the controller (kind of like a callback
-                    // with command id ApplicationControllerUpdate
-                    var requestNodeInfoRequest = RequestNodeInfoRequest.Create(Id);
-                    await _driver.SendCommandAsync(requestNodeInfoRequest, cancellationToken)
-                        .ConfigureAwait(false);
-                    await _nodeInfoRecievedEvent.WaitAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
-
-                    // TODO: Query command classes
+                    return;
                 }
+
+                // This request causes unsolicited requests from the controller (kind of like a callback)
+                // with command id ApplicationControllerUpdate
+                var requestNodeInfoRequest = RequestNodeInfoRequest.Create(Id);
+                await _driver.SendCommandAsync(requestNodeInfoRequest, cancellationToken)
+                    .ConfigureAwait(false);
+                await _nodeInfoRecievedEvent.WaitAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                // Initialize command classes
+                var commandClassInitializationTasks = new List<Task>();
+                lock (_commandClasses)
+                {
+                    foreach (KeyValuePair<CommandClassId, CommandClass> pair in _commandClasses)
+                    {
+                        CommandClass commandClass = pair.Value;
+                        Task initializationTask = commandClass.InitializeAsync(cancellationToken);
+                        
+                        // Many CCs don't require async initializaton, so avoid adding to the list
+                        if (!initializationTask.IsCompleted)
+                        {
+                            commandClassInitializationTasks.Add(initializationTask);
+                        }
+                    }
+                }
+
+                await Task.WhenAll(commandClassInitializationTasks).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -152,26 +183,24 @@ public sealed class Node
             }
             else
             {
-                CommandClass? commandClass = CommandClassFactory.Create(commandClassInfo, _driver, this);
-
-                // If null, that means we just haven't implemented it yet.
-                if (commandClass != null)
-                {
-                    _commandClasses.Add(commandClassInfo.CommandClass, commandClass);
-                }
+                CommandClass commandClass = CommandClassFactory.Create(commandClassInfo, _driver, this);
+                _commandClasses.Add(commandClassInfo.CommandClass, commandClass);
             }
         }
     }
 
     internal void ProcessCommand(CommandClassFrame frame)
     {
-        if (_commandClasses.TryGetValue(frame.CommandClassId, out CommandClass? commandClass))
+        CommandClass? commandClass;
+        lock (_commandClasses)
         {
-            commandClass.ProcessCommand(frame);
+            if (!_commandClasses.TryGetValue(frame.CommandClassId, out commandClass))
+            {
+                // TODO: Log
+                return;
+            }
         }
-        else
-        {
-            // TODO: Log
-        }
+
+        commandClass.ProcessCommand(frame);
     }
 }

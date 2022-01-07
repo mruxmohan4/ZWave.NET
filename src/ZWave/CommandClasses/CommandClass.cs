@@ -10,6 +10,8 @@ public abstract class CommandClass
     // of Dictionary<CommandId, List<TCS>> which would have faster lookups
     private readonly List<AwaitedReport> _awaitedReports = new List<AwaitedReport>();
 
+    private Task? _initializeTask;
+
     internal CommandClass(
         CommandClassInfo info,
         Driver driver,
@@ -24,6 +26,8 @@ public abstract class CommandClass
 
     public Node Node { get; }
 
+    public byte? Version { get; private set; }
+
     internal void MergeInfo(CommandClassInfo info)
     {
         if (info.CommandClass != Info.CommandClass)
@@ -36,6 +40,21 @@ public abstract class CommandClass
             info.IsSupported || Info.IsSupported,
             info.IsControlled || Info.IsControlled);
     }
+
+    internal void SetVersion(byte version)
+    {
+        Version = version;
+    }
+
+    internal Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        _initializeTask = InitializeCoreAsync(cancellationToken);
+        return _initializeTask;
+    }
+
+    protected virtual Task InitializeCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    internal Task WaitForInitializedAsync() => _initializeTask ?? throw new InvalidOperationException("The command class has not begun initialization yet");
 
     internal void ProcessCommand(CommandClassFrame frame)
     {
