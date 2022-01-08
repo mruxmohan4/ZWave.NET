@@ -56,6 +56,9 @@ public abstract class CommandClass
 
     public byte? Version { get; private set; }
 
+    // If we don't know the version, we have to assume it's version 1
+    protected byte EffectiveVersion => Version.GetValueOrDefault(1);
+
     internal void MergeInfo(CommandClassInfo info)
     {
         if (info.CommandClass != Info.CommandClass)
@@ -121,7 +124,7 @@ public abstract class CommandClass
         CancellationToken cancellationToken)
         where TRequest : struct, ICommand<TRequest>
     {
-        if (IsCommandSupported(TRequest.CommandId) != true)
+        if (!IsCommandSupported(TRequest.CommandId).GetValueOrDefault())
         {
             throw new ZWaveException(ZWaveErrorCode.CommandNotSupported, "This command is not supported by this node");
         }

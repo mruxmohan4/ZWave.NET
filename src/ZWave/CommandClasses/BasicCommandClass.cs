@@ -138,7 +138,7 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
             }
             case BasicCommand.Report:
             {
-                var command = new BasicReportCommand(frame);
+                var command = new BasicReportCommand(frame, EffectiveVersion);
                 CurrentValue = command.CurrentValue;
                 TargetValue = command.TargetValue;
                 Duration = command.Duration;
@@ -194,9 +194,12 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
 
     private struct BasicReportCommand : ICommand<BasicReportCommand>
     {
-        public BasicReportCommand(CommandClassFrame frame)
+        private readonly byte _version;
+
+        public BasicReportCommand(CommandClassFrame frame, byte version)
         {
             Frame = frame;
+            _version = version;
         }
 
         public static CommandClassId CommandClassId => CommandClassId.Basic;
@@ -213,14 +216,14 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
         /// <summary>
         /// The the target value of an ongoing transition or the most recent transition.
         /// </summary>
-        public BasicValue? TargetValue => Frame.CommandParameters.Length > 1
+        public BasicValue? TargetValue => _version >= 2 && Frame.CommandParameters.Length > 1
             ? Frame.CommandParameters.Span[1]
             : null;
 
         /// <summary>
         /// The time needed to reach the Target Value at the actual transition rate.
         /// </summary>
-        public DurationReport? Duration => Frame.CommandParameters.Length > 2
+        public DurationReport? Duration => _version >= 2 && Frame.CommandParameters.Length > 2
             ? Frame.CommandParameters.Span[2]
             : null;
     }

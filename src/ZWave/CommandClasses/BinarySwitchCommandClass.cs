@@ -68,7 +68,7 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
         DurationSet? duration,
         CancellationToken cancellationToken)
     {
-        var command = BinarySwitchSetCommand.Create(targetValue, duration);
+        var command = BinarySwitchSetCommand.Create(EffectiveVersion, targetValue, duration);
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
@@ -84,7 +84,7 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
             }
             case BinarySwitchCommand.Report:
             {
-                var command = new BinarySwitchReportCommand(frame);
+                var command = new BinarySwitchReportCommand(frame, EffectiveVersion);
                 CurrentValue = command.CurrentValue;
                 TargetValue = command.TargetValue;
                 Duration = command.Duration;
@@ -106,11 +106,11 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
 
         public CommandClassFrame Frame { get; }
 
-        public static BinarySwitchSetCommand Create(bool value, DurationSet? duration)
+        public static BinarySwitchSetCommand Create(byte version, bool value, DurationSet? duration)
         {
             Span<byte> commandParameters = stackalloc byte[1 + (duration.HasValue ? 1 : 0)];
             commandParameters[0] = value ? (byte)0xff : (byte)0x00;
-            if (duration.HasValue)
+            if (version >= 2 && duration.HasValue)
             {
                 commandParameters[1] = duration.Value.Value;
             }
@@ -142,9 +142,12 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
 
     private struct BinarySwitchReportCommand : ICommand<BinarySwitchReportCommand>
     {
-        public BinarySwitchReportCommand(CommandClassFrame frame)
+        private readonly byte _version;
+
+        public BinarySwitchReportCommand(CommandClassFrame frame, byte version)
         {
             Frame = frame;
+            _version = version;
         }
 
         public static CommandClassId CommandClassId => CommandClassId.BinarySwitch;
@@ -161,14 +164,14 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
         /// <summary>
         /// The the target value of an ongoing transition or the most recent transition.
         /// </summary>
-        public bool? TargetValue => Frame.CommandParameters.Length > 1
+        public bool? TargetValue => _version >= 2 && Frame.CommandParameters.Length > 1
             ? ParseBool(Frame.CommandParameters.Span[1])
             : null;
 
         /// <summary>
         /// The time needed to reach the Target Value at the actual transition rate.
         /// </summary>
-        public DurationReport? Duration => Frame.CommandParameters.Length > 2
+        public DurationReport? Duration => _version >= 2 && Frame.CommandParameters.Length > 2
             ? Frame.CommandParameters.Span[2]
             : null;
 

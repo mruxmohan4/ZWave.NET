@@ -209,8 +209,14 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         foreach (KeyValuePair<CommandClassId, CommandClassInfo> pair in Node.CommandClasses)
         {
             CommandClassId commandClassId = pair.Key;
-            await GetCommandClassAsync(commandClassId, cancellationToken);
+            await GetCommandClassAsync(commandClassId, cancellationToken).ConfigureAwait(false);
         }
+
+        // Preload the version information for the node
+        await GetAsync(cancellationToken).ConfigureAwait(false);
+
+        // Preload this CC's capabilitiles
+        await GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     protected override void ProcessCommandCore(CommandClassFrame frame)
@@ -227,7 +233,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
             }
             case VersionCommand.Report:
             {
-                var command = new VersionReportCommand(frame);
+                var command = new VersionReportCommand(frame, EffectiveVersion);
                 LibraryType = command.ZWaveLibraryType;
                 ProtocolVersion = command.ZWaveProtocolVersion;
                 FirmwareVersions = command.FirmwareVersions;
@@ -286,9 +292,12 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
 
     private struct VersionReportCommand : ICommand<VersionReportCommand>
     {
-        public VersionReportCommand(CommandClassFrame frame)
+        private readonly byte _version;
+
+        public VersionReportCommand(CommandClassFrame frame, byte version)
         {
             Frame = frame;
+            _version = version;
         }
 
         public static CommandClassId CommandClassId => CommandClassId.Version;
@@ -315,7 +324,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
             get
             {
                 int numFirmwareVersions = 1;
-                if (Frame.CommandParameters.Length > 6)
+                if (_version >= 2 && Frame.CommandParameters.Length > 6)
                 {
                     numFirmwareVersions += Frame.CommandParameters.Span[6];
                 }
@@ -340,7 +349,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         /// A value which is unique to this particular version of the product
         /// </summary>
         public byte? HardwareVersion
-            => Frame.CommandParameters.Length > 5
+            => _version >= 2 && Frame.CommandParameters.Length > 5
                 ? Frame.CommandParameters.Span[5]
                 : null;
     }
