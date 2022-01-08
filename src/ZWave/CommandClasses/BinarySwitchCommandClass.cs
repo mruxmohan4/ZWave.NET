@@ -1,7 +1,25 @@
 ﻿namespace ZWave.CommandClasses;
 
+public enum BinarySwitchCommand : byte
+{
+    /// <summary>
+    /// Set the On/Off state at the receiving node.
+    /// </summary>
+    Set = 0x01,
+
+    /// <summary>
+    /// Request the current On/Off state from a node
+    /// </summary>
+    Get = 0x02,
+
+    /// <summary>
+    /// Advertise the current On/Off state at the sending node
+    /// </summary>
+    Report = 0x03,
+}
+
 [CommandClass(CommandClassId.BinarySwitch)]
-public sealed class BinarySwitchCommandClass : CommandClass
+public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
 {
     internal BinarySwitchCommandClass(CommandClassInfo info, Driver driver, Node node)
         : base(info, driver, node)
@@ -22,6 +40,15 @@ public sealed class BinarySwitchCommandClass : CommandClass
     /// Advertise the duration of a transition from the Current Value to the Target Value.
     /// </summary>
     public DurationReport? Duration { get; private set; }
+
+    /// <inheritdoc />
+    public override bool? IsCommandSupported(BinarySwitchCommand command)
+        => command switch
+        {
+            BinarySwitchCommand.Set => true,
+            BinarySwitchCommand.Get => true,
+            _ => false,
+        };
 
     /// <summary>
     /// Request the current On/Off state from a node
@@ -64,24 +91,6 @@ public sealed class BinarySwitchCommandClass : CommandClass
                 break;
             }
         }
-    }
-
-    private enum BinarySwitchCommand : byte
-    {
-        /// <summary>
-        /// Set the On/Off state at the receiving node.
-        /// </summary>
-        Set = 0x01,
-
-        /// <summary>
-        /// Request the current On/Off state from a node
-        /// </summary>
-        Get = 0x02,
-
-        /// <summary>
-        /// Advertise the current On/Off state at the sending node
-        /// </summary>
-        Report = 0x03,
     }
 
     private struct BinarySwitchSetCommand : ICommand<BinarySwitchSetCommand>

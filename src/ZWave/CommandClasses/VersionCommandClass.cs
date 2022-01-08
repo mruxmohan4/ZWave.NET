@@ -27,8 +27,52 @@ public enum ZWaveLibraryType : byte
     AvDevice = 0x0b,
 }
 
+public enum VersionCommand : byte
+{
+    /// <summary>
+    /// Request the library type, protocol version and application version from a device that supports
+    /// the Version Command Class
+    /// </summary>
+    Get = 0x11,
+
+    /// <summary>
+    /// Advertise the library type, protocol version and application version from a device.
+    /// </summary>
+    Report = 0x12,
+
+    /// <summary>
+    /// Request the individual command class versions from a device.
+    /// </summary>
+    CommandClassGet = 0x13,
+
+    /// <summary>
+    /// Report the individual command class versions from a device.
+    /// </summary>
+    CommandClassReport = 0x14,
+
+    /// <summary>
+    /// Request which version commands are supported by a node.
+    /// </summary>
+    CapabilitiesGet = 0x15,
+
+    /// <summary>
+    /// Advertise the version commands supported by the sending node
+    /// </summary>
+    CapabilitiesReport = 0x16,
+
+    /// <summary>
+    /// Request the detailed Z-Wave chip software version information of a node
+    /// </summary>
+    ZWaveSoftwareGet = 0x17,
+
+    /// <summary>
+    /// Advertise the detailed Z-Wave chip software version information of a node.
+    /// </summary>
+    ZWaveSoftwareReport = 0x18,
+}
+
 [CommandClass(CommandClassId.Version)]
-public sealed class VersionCommandClass : CommandClass
+public sealed class VersionCommandClass : CommandClass<VersionCommand>
 {
     public VersionCommandClass(CommandClassInfo info, Driver driver, Node node)
         : base(info, driver, node)
@@ -58,7 +102,7 @@ public sealed class VersionCommandClass : CommandClass
     /// <summary>
     /// Whether the Z-Wave Software Get Command is supported.
     /// </summary>
-    public bool ZWaveSoftwareSupported { get; private set; }
+    public bool? ZWaveSoftwareSupported { get; private set; }
 
     /// <summary>
     /// The SDK version used for building the Z-Wave chip software components for the node.
@@ -104,6 +148,17 @@ public sealed class VersionCommandClass : CommandClass
     /// The actual build of the application software used by the node on its ZWave chip.
     /// </summary>
     public ushort? ApplicationBuildNumber { get; private set; }
+
+    /// <inheritdoc />
+    public override bool? IsCommandSupported(VersionCommand command)
+        => command switch
+        {
+            VersionCommand.Get => true,
+            VersionCommand.CommandClassGet => true,
+            VersionCommand.CapabilitiesGet => Version.HasValue ? Version >= 3 : null,
+            VersionCommand.ZWaveSoftwareGet => ZWaveSoftwareSupported,
+            _ => false,
+        };
 
     /// <summary>
     /// Request the library type, protocol version and application version from a device that supports
@@ -207,50 +262,6 @@ public sealed class VersionCommandClass : CommandClass
                 break;
             }
         }
-    }
-
-    private enum VersionCommand : byte
-    {
-        /// <summary>
-        /// Request the library type, protocol version and application version from a device that supports
-        /// the Version Command Class
-        /// </summary>
-        Get = 0x11,
-
-        /// <summary>
-        /// Advertise the library type, protocol version and application version from a device.
-        /// </summary>
-        Report = 0x12,
-
-        /// <summary>
-        /// Request the individual command class versions from a device.
-        /// </summary>
-        CommandClassGet = 0x13,
-
-        /// <summary>
-        /// Report the individual command class versions from a device.
-        /// </summary>
-        CommandClassReport = 0x14,
-
-        /// <summary>
-        /// Request which version commands are supported by a node.
-        /// </summary>
-        CapabilitiesGet = 0x15,
-
-        /// <summary>
-        /// Advertise the version commands supported by the sending node
-        /// </summary>
-        CapabilitiesReport = 0x16,
-
-        /// <summary>
-        /// Request the detailed Z-Wave chip software version information of a node
-        /// </summary>
-        ZWaveSoftwareGet = 0x17,
-
-        /// <summary>
-        /// Advertise the detailed Z-Wave chip software version information of a node.
-        /// </summary>
-        ZWaveSoftwareReport = 0x18,
     }
 
     private struct VersionGetCommand : ICommand<VersionGetCommand>

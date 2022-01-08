@@ -29,4 +29,9 @@ public enum ZWaveErrorCode
     /// The command class is not supported by the node.
     /// </summary>
     CommandClassNotImplemented,
+
+    /// <summary>
+    /// The command is not supported by the node.
+    /// </summary>
+    CommandNotSupported,
 }

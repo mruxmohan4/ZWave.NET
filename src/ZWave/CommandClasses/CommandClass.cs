@@ -1,4 +1,32 @@
-﻿namespace ZWave.CommandClasses;
+﻿using System.Runtime.CompilerServices;
+
+namespace ZWave.CommandClasses;
+
+public abstract class CommandClass<TCommand> : CommandClass
+    where TCommand : struct, Enum
+{
+    internal CommandClass(CommandClassInfo info, Driver driver, Node node)
+        : base(info, driver, node)
+    {
+        if (Unsafe.SizeOf<TCommand>() != Unsafe.SizeOf<byte>())
+        {
+            throw new ArgumentException("The generic type must be an enum with backing type byte", nameof(TCommand));
+        }
+    }
+
+    /// <summary>
+    /// Determines whether a command is supported for calling.
+    /// </summary>
+    /// <remarks>
+    /// If the return value is unknown, usually either the command class's version has not been queried yet
+    /// or there is some prerequisite command to call to get the command class capabilitiles first.
+    /// </remarks>
+    /// <returns>True if the command is supported, false if not, null if unknown.</returns>
+    public abstract bool? IsCommandSupported(TCommand command);
+
+    protected override bool? IsCommandSupported(byte command)
+        => IsCommandSupported(Unsafe.As<byte, TCommand>(ref command));
+}
 
 public abstract class CommandClass
 {
@@ -56,6 +84,8 @@ public abstract class CommandClass
 
     internal Task WaitForInitializedAsync() => _initializeTask ?? throw new InvalidOperationException("The command class has not begun initialization yet");
 
+    protected abstract bool? IsCommandSupported(byte command);
+
     internal void ProcessCommand(CommandClassFrame frame)
     {
         if (frame.CommandClassId != Info.CommandClass)
@@ -90,7 +120,14 @@ public abstract class CommandClass
         TRequest command,
         CancellationToken cancellationToken)
         where TRequest : struct, ICommand<TRequest>
-        => await _driver.SendCommandAsync(command, Node.Id, cancellationToken).ConfigureAwait(false);
+    {
+        if (IsCommandSupported(TRequest.CommandId) != true)
+        {
+            throw new ZWaveException(ZWaveErrorCode.CommandNotSupported, "This command is not supported by this node");
+        }
+
+        await _driver.SendCommandAsync(command, Node.Id, cancellationToken).ConfigureAwait(false);
+    }
 
     internal async Task AwaitNextReportAsync<TReport>(CancellationToken cancellationToken)
         where TReport : struct, ICommand<TReport>

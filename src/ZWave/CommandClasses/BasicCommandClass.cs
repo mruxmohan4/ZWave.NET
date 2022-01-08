@@ -54,8 +54,26 @@ public struct BasicValue
     public static implicit operator BasicValue(bool b) => new BasicValue(b);
 }
 
+public enum BasicCommand : byte
+{
+    /// <summary>
+    /// Set a value in a supporting device
+    /// </summary>
+    Set = 0x01,
+
+    /// <summary>
+    /// Request the status of a supporting device
+    /// </summary>
+    Get = 0x02,
+
+    /// <summary>
+    /// Advertise the status of the primary functionality of the device.
+    /// </summary>
+    Report = 0x03,
+}
+
 [CommandClass(CommandClassId.Basic)]
-public sealed class BasicCommandClass : CommandClass
+public sealed class BasicCommandClass : CommandClass<BasicCommand>
 {
     internal BasicCommandClass(
         CommandClassInfo info,
@@ -79,6 +97,15 @@ public sealed class BasicCommandClass : CommandClass
     /// The time needed to reach the Target Value at the actual transition rate.
     /// </summary>
     public DurationReport? Duration { get; private set; }
+
+    /// <inheritdoc />
+    public override bool? IsCommandSupported(BasicCommand command)
+        => command switch
+        {
+            BasicCommand.Set => true,
+            BasicCommand.Get => true,
+            _ => false,
+        };
 
     /// <summary>
     /// Request the status of a supporting device
@@ -118,24 +145,6 @@ public sealed class BasicCommandClass : CommandClass
                 break;
             }
         }
-    }
-
-    private enum BasicCommand : byte
-    {
-        /// <summary>
-        /// Set a value in a supporting device
-        /// </summary>
-        Set = 0x01,
-
-        /// <summary>
-        /// Request the status of a supporting device
-        /// </summary>
-        Get = 0x02,
-
-        /// <summary>
-        /// Advertise the status of the primary functionality of the device.
-        /// </summary>
-        Report = 0x03,
     }
 
     private struct BasicSetCommand : ICommand<BasicSetCommand>
