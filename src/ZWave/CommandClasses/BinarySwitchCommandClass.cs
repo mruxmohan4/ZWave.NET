@@ -18,6 +18,34 @@ public enum BinarySwitchCommand : byte
     Report = 0x03,
 }
 
+public readonly struct BinarySwitchState
+{
+    public BinarySwitchState(
+        bool? currentValue,
+        bool? targetValue,
+        DurationReport? duration)
+    {
+        CurrentValue = currentValue;
+        TargetValue = targetValue;
+        Duration = duration;
+    }
+
+    /// <summary>
+    /// The current On/Off state at the sending node
+    /// </summary>
+    public bool? CurrentValue { get; }
+
+    /// <summary>
+    /// The target value of an ongoing transition or the most recent transition.
+    /// </summary>
+    public bool? TargetValue { get; }
+
+    /// <summary>
+    /// Advertise the duration of a transition from the Current Value to the Target Value.
+    /// </summary>
+    public DurationReport? Duration { get; }
+}
+
 [CommandClass(CommandClassId.BinarySwitch)]
 public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
 {
@@ -26,20 +54,7 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
     {
     }
 
-    /// <summary>
-    /// The current On/Off state at the sending node
-    /// </summary>
-    public bool? CurrentValue { get; private set; }
-
-    /// <summary>
-    /// The target value of an ongoing transition or the most recent transition.
-    /// </summary>
-    public bool? TargetValue { get; private set; }
-
-    /// <summary>
-    /// Advertise the duration of a transition from the Current Value to the Target Value.
-    /// </summary>
-    public DurationReport? Duration { get; private set; }
+    public BinarySwitchState? State { get; private set; }
 
     /// <inheritdoc />
     public override bool? IsCommandSupported(BinarySwitchCommand command)
@@ -53,11 +68,12 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
     /// <summary>
     /// Request the current On/Off state from a node
     /// </summary>
-    public async Task GetAsync(CancellationToken cancellationToken)
+    public async Task<BinarySwitchState> GetAsync(CancellationToken cancellationToken)
     {
         var command = BinarySwitchGetCommand.Create();
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<BinarySwitchReportCommand>(cancellationToken).ConfigureAwait(false);
+        return State!.Value;
     }
 
     /// <summary>
@@ -85,9 +101,10 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
             case BinarySwitchCommand.Report:
             {
                 var command = new BinarySwitchReportCommand(frame, EffectiveVersion);
-                CurrentValue = command.CurrentValue;
-                TargetValue = command.TargetValue;
-                Duration = command.Duration;
+                State = new BinarySwitchState(
+                    command.CurrentValue,
+                    command.TargetValue,
+                    command.Duration);
                 break;
             }
         }

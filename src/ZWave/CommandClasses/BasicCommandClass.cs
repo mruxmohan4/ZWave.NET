@@ -72,6 +72,34 @@ public enum BasicCommand : byte
     Report = 0x03,
 }
 
+public readonly struct BasicState
+{
+    public BasicState(
+        BasicValue currentValue,
+        BasicValue? targetValue,
+        DurationReport? duration)
+    {
+        CurrentValue = currentValue;
+        TargetValue = targetValue;
+        Duration = duration;
+    }
+
+    /// <summary>
+    /// The current value of the device hardware
+    /// </summary>
+    public BasicValue CurrentValue { get; }
+
+    /// <summary>
+    /// The the target value of an ongoing transition or the most recent transition.
+    /// </summary>
+    public BasicValue? TargetValue { get; }
+
+    /// <summary>
+    /// The time needed to reach the Target Value at the actual transition rate.
+    /// </summary>
+    public DurationReport? Duration { get; }
+}
+
 [CommandClass(CommandClassId.Basic)]
 public sealed class BasicCommandClass : CommandClass<BasicCommand>
 {
@@ -83,20 +111,7 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
     {
     }
 
-    /// <summary>
-    /// The current value of the device hardware
-    /// </summary>
-    public BasicValue? CurrentValue { get; private set; }
-
-    /// <summary>
-    /// The the target value of an ongoing transition or the most recent transition.
-    /// </summary>
-    public BasicValue? TargetValue { get; private set; }
-
-    /// <summary>
-    /// The time needed to reach the Target Value at the actual transition rate.
-    /// </summary>
-    public DurationReport? Duration { get; private set; }
+    public BasicState? State { get; private set; }
 
     /// <inheritdoc />
     public override bool? IsCommandSupported(BasicCommand command)
@@ -110,11 +125,12 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
     /// <summary>
     /// Request the status of a supporting device
     /// </summary>
-    public async Task GetAsync(CancellationToken cancellationToken)
+    public async Task<BasicState> GetAsync(CancellationToken cancellationToken)
     {
         var command = BasicGetCommand.Create();
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<BasicReportCommand>(cancellationToken).ConfigureAwait(false);
+        return State!.Value;
     }
 
     /// <summary>
@@ -139,9 +155,10 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
             case BasicCommand.Report:
             {
                 var command = new BasicReportCommand(frame, EffectiveVersion);
-                CurrentValue = command.CurrentValue;
-                TargetValue = command.TargetValue;
-                Duration = command.Duration;
+                State = new BasicState(
+                    command.CurrentValue,
+                    command.TargetValue,
+                    command.Duration);
                 break;
             }
         }

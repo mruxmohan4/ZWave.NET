@@ -71,6 +71,138 @@ public enum VersionCommand : byte
     ZWaveSoftwareReport = 0x18,
 }
 
+public readonly struct VersionHardwareInfo
+{
+    public VersionHardwareInfo(
+        ZWaveLibraryType libraryType,
+        Version protocolVersion,
+        IReadOnlyList<Version> firmwareVersions,
+        byte? hardwareVersion)
+    {
+        LibraryType = libraryType;
+        ProtocolVersion = protocolVersion;
+        FirmwareVersions = firmwareVersions;
+        HardwareVersion = hardwareVersion;
+    }
+
+    /// <summary>
+    /// The Z-Wave Protocol Library Type
+    /// </summary>
+    public ZWaveLibraryType LibraryType { get; }
+
+    /// <summary>
+    /// Advertise information specific to Software Development Kits (SDK) provided by Silicon Labs
+    /// </summary>
+    public Version ProtocolVersion { get; }
+
+    /// <summary>
+    /// The firmware versions of the device.
+    /// </summary>
+    public IReadOnlyList<Version> FirmwareVersions { get; }
+
+    /// <summary>
+    /// A value which is unique to this particular version of the product
+    /// </summary>
+    public byte? HardwareVersion { get; }
+}
+
+[Flags]
+public enum VersionCapabilities : byte
+{
+    /// <summary>
+    /// Advertise support for the version information queried with the Version Get Command
+    /// </summary>
+    Version = 1 << 0,
+
+    /// <summary>
+    /// Advertise support for the Command Class version information queried with the Version Command Class Get Command
+    /// </summary>
+    /// <remarks>
+    /// This flag must always be set.
+    /// </remarks>
+    CommandClass = 1 << 1,
+
+    /// <summary>
+    /// Advertise support for the detailed Z-Wave software version information queried with the Version Z-Wave Software
+    /// Get Command.
+    /// </summary>
+    /// <remarks>
+    /// This flag must always be set.
+    /// </remarks>
+    ZWaveSoftware = 1 << 2,
+}
+
+public readonly struct VersionSoftwareInfo
+{
+    public VersionSoftwareInfo(
+        Version? sdkVersion,
+        Version? applicationFrameworkVersion,
+        ushort? applicationFrameworkBuildNumber,
+        Version? hostInterfaceVersion,
+        ushort? hostInterfaceBuildNumber,
+        Version? zwaveProtocolVersion,
+        ushort? zwaveProtocolBuildNumber,
+        Version? applicationVersion,
+        ushort? applicationBuildNumber)
+    {
+        SdkVersion = sdkVersion;
+        ApplicationFrameworkApiVersion = applicationFrameworkVersion;
+        ApplicationFramworkBuildNumber = applicationFrameworkBuildNumber;
+        HostInterfaceVersion = hostInterfaceVersion;
+        HostInterfaceBuildNumber = hostInterfaceBuildNumber;
+        ZWaveProtocolVersion = zwaveProtocolVersion;
+        ZWaveProtocolBuildNumber = zwaveProtocolBuildNumber;
+        ApplicationVersion = applicationVersion;
+        ApplicationBuildNumber = applicationBuildNumber;
+    }
+
+    /// <summary>
+    /// The SDK version used for building the Z-Wave chip software components for the node.
+    /// </summary>
+    public Version? SdkVersion { get; }
+
+    /// <summary>
+    /// The Z-Wave Application Framework API version used by the node
+    /// </summary>
+    public Version? ApplicationFrameworkApiVersion { get; }
+
+    /// <summary>
+    /// The Z-Wave Application Framework build number running on the node.
+    /// </summary>
+    public ushort? ApplicationFramworkBuildNumber { get; }
+
+    /// <summary>
+    /// The version of the Serial API exposed to a host CPU or a second Chip
+    /// </summary>
+    public Version? HostInterfaceVersion { get; }
+
+    /// <summary>
+    /// The build number of the Serial API software exposed to a host CPU or second Chip.
+    /// </summary>
+    public ushort? HostInterfaceBuildNumber { get; }
+
+    /// <summary>
+    /// The Z-Wave protocol version used by the node.
+    /// </summary>
+    public Version? ZWaveProtocolVersion { get; }
+
+    /// <summary>
+    /// The actual build number of the Z-Wave protocol software used by the node.
+    /// </summary>
+    public ushort? ZWaveProtocolBuildNumber { get; }
+
+    /// <summary>
+    /// The version of application software used by the node on its Z-Wave chip.
+    /// </summary>
+    public Version? ApplicationVersion { get; }
+
+    /// <summary>
+    /// The actual build of the application software used by the node on its ZWave chip.
+    /// </summary>
+    public ushort? ApplicationBuildNumber { get; }
+
+}
+
 [CommandClass(CommandClassId.Version)]
 public sealed class VersionCommandClass : CommandClass<VersionCommand>
 {
@@ -79,75 +211,14 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
     {
     }
 
-    /// <summary>
-    /// The Z-Wave Protocol Library Type
-    /// </summary>
-    public ZWaveLibraryType? LibraryType { get; private set; }
+    public VersionHardwareInfo? HardwareInfo { get; private set; }
 
     /// <summary>
-    /// Advertise information specific to Software Development Kits (SDK) provided by Silicon Labs
+    /// Advertise support for commands
     /// </summary>
-    public Version? ProtocolVersion { get; private set; }
+    public VersionCapabilities? Capabilities { get; private set; }
 
-    /// <summary>
-    /// The firmware versions of the device.
-    /// </summary>
-    public IReadOnlyList<Version>? FirmwareVersions { get; private set; }
-
-    /// <summary>
-    /// A value which is unique to this particular version of the product
-    /// </summary>
-    public byte? HardwareVersion { get; private set; }
-
-    /// <summary>
-    /// Whether the Z-Wave Software Get Command is supported.
-    /// </summary>
-    public bool? ZWaveSoftwareSupported { get; private set; }
-
-    /// <summary>
-    /// The SDK version used for building the Z-Wave chip software components for the node.
-    /// </summary>
-    public Version? SdkVersion { get; private set; }
-
-    /// <summary>
-    /// The Z-Wave Application Framework API version used by the node
-    /// </summary>
-    public Version? ApplicationFrameworkApiVersion { get; private set; }
-
-    /// <summary>
-    /// The Z-Wave Application Framework build number running on the node.
-    /// </summary>
-    public ushort? ApplicationFramworkBuildNumber { get; private set; }
-
-    /// <summary>
-    /// The version of the Serial API exposed to a host CPU or a second Chip
-    /// </summary>
-    public Version? HostInterfaceVersion { get; private set; }
-
-    /// <summary>
-    /// The build number of the Serial API software exposed to a host CPU or second Chip.
-    /// </summary>
-    public ushort? HostInterfaceBuildNumber { get; private set; }
-
-    /// <summary>
-    /// The Z-Wave protocol version used by the node.
-    /// </summary>
-    public Version? ZWaveProtocolVersion { get; private set; }
-
-    /// <summary>
-    /// The actual build number of the Z-Wave protocol software used by the node.
-    /// </summary>
-    public ushort? ZWaveProtocolBuildNumber { get; private set; }
-
-    /// <summary>
-    /// The version of application software used by the node on its Z-Wave chip.
-    /// </summary>
-    public Version? ApplicationVersion { get; private set; }
-
-    /// <summary>
-    /// The actual build of the application software used by the node on its ZWave chip.
-    /// </summary>
-    public ushort? ApplicationBuildNumber { get; private set; }
+    public VersionSoftwareInfo? SoftwareInfo { get; private set; }
 
     /// <inheritdoc />
     public override bool? IsCommandSupported(VersionCommand command)
@@ -156,7 +227,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
             VersionCommand.Get => true,
             VersionCommand.CommandClassGet => true,
             VersionCommand.CapabilitiesGet => Version.HasValue ? Version >= 3 : null,
-            VersionCommand.ZWaveSoftwareGet => ZWaveSoftwareSupported,
+            VersionCommand.ZWaveSoftwareGet => (Capabilities & VersionCapabilities.ZWaveSoftware) != 0,
             _ => false,
         };
 
@@ -164,41 +235,45 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
     /// Request the library type, protocol version and application version from a device that supports
     /// the Version Command Class
     /// </summary>
-    public async Task GetAsync(CancellationToken cancellationToken)
+    public async Task<VersionHardwareInfo> GetAsync(CancellationToken cancellationToken)
     {
         var command = VersionGetCommand.Create();
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<VersionReportCommand>(cancellationToken).ConfigureAwait(false);
+        return HardwareInfo!.Value;
     }
 
     /// <summary>
     /// Request the individual command class versions from a device.
     /// </summary>
-    public async Task GetCommandClassAsync(CommandClassId commandClassId, CancellationToken cancellationToken)
+    public async Task<byte> GetCommandClassAsync(CommandClassId commandClassId, CancellationToken cancellationToken)
     {
         var command = VersionCommandClassGetCommand.Create(commandClassId);
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<VersionCommandClassReportCommand>(cancellationToken).ConfigureAwait(false);
+        return Node.GetCommandClass(commandClassId).Version!.Value;
     }
 
     /// <summary>
     /// Request which version commands are supported by a node.
     /// </summary>
-    public async Task GetCapabilitiesAsync(CancellationToken cancellationToken)
+    public async Task<VersionCapabilities> GetCapabilitiesAsync(CancellationToken cancellationToken)
     {
         var command = VersionCapabilitiesGetCommand.Create();
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<VersionCapabilitiesReportCommand>(cancellationToken).ConfigureAwait(false);
+        return Capabilities!.Value;
     }
 
     /// <summary>
     /// Request the detailed Z-Wave chip software version information of a node
     /// </summary>
-    public async Task GetZWaveSoftwareAsync(CancellationToken cancellationToken)
+    public async Task<VersionSoftwareInfo> GetZWaveSoftwareAsync(CancellationToken cancellationToken)
     {
         var command = VersionZWaveSoftwareGetCommand.Create();
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<VersionZWaveSoftwareReportCommand>(cancellationToken).ConfigureAwait(false);
+        return SoftwareInfo!.Value;
     }
 
     protected override async Task InitializeCoreAsync(CancellationToken cancellationToken)
@@ -234,10 +309,11 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
             case VersionCommand.Report:
             {
                 var command = new VersionReportCommand(frame, EffectiveVersion);
-                LibraryType = command.ZWaveLibraryType;
-                ProtocolVersion = command.ZWaveProtocolVersion;
-                FirmwareVersions = command.FirmwareVersions;
-                HardwareVersion = command.HardwareVersion;
+                HardwareInfo = new VersionHardwareInfo(
+                    command.ZWaveLibraryType,
+                    command.ZWaveProtocolVersion,
+                    command.FirmwareVersions,
+                    command.HardwareVersion);
                 break;
             }
             case VersionCommand.CommandClassReport:
@@ -250,21 +326,22 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
             case VersionCommand.CapabilitiesReport:
             {
                 var command = new VersionCapabilitiesReportCommand(frame);
-                ZWaveSoftwareSupported = command.ZWaveSoftwareSupported;
+                Capabilities = command.Capabilities;
                 break;
             }
             case VersionCommand.ZWaveSoftwareReport:
             {
                 var command = new VersionZWaveSoftwareReportCommand(frame);
-                SdkVersion = command.SdkVersion;
-                ApplicationFrameworkApiVersion = command.ApplicationFrameworkApiVersion;
-                ApplicationFramworkBuildNumber = command.ApplicationFramworkBuildNumber;
-                HostInterfaceVersion = command.HostInterfaceVersion;
-                HostInterfaceBuildNumber = command.HostInterfaceBuildNumber;
-                ZWaveProtocolVersion = command.ZWaveProtocolVersion;
-                ZWaveProtocolBuildNumber = command.ZWaveProtocolBuildNumber;
-                ApplicationVersion = command.ApplicationVersion;
-                ApplicationBuildNumber = command.ApplicationBuildNumber;
+                SoftwareInfo = new VersionSoftwareInfo(
+                    command.SdkVersion,
+                    command.ApplicationFrameworkApiVersion,
+                    command.ApplicationFramworkBuildNumber,
+                    command.HostInterfaceVersion,
+                    command.HostInterfaceBuildNumber,
+                    command.ZWaveProtocolVersion,
+                    command.ZWaveProtocolBuildNumber,
+                    command.ApplicationVersion,
+                    command.ApplicationBuildNumber);
                 break;
             }
         }
@@ -435,26 +512,9 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         public CommandClassFrame Frame { get; }
 
         /// <summary>
-        /// Advertise support for the version information queried with the Version Get Command
+        /// Advertise support for commands
         /// </summary>
-        /// <remarks>
-        /// This field must be set to 1, so it's not really useful...
-        /// </remarks>
-        public bool VersionSupported => (Frame.CommandParameters.Span[0] & 0b0000_0001) != 0;
-
-        /// <summary>
-        /// Advertise support for the Command Class version information queried with the Version Command Class Get Command
-        /// </summary>
-        /// <remarks>
-        /// This field must be set to 1, so it's not really useful...
-        /// </remarks>
-        public bool CommandClassSupported => (Frame.CommandParameters.Span[0] & 0b0000_0010) != 0;
-
-        /// <summary>
-        /// Advertise support for the detailed Z-Wave software version information queried with the Version Z-Wave Software
-        /// Get Command.
-        /// </summary>
-        public bool ZWaveSoftwareSupported => (Frame.CommandParameters.Span[0] & 0b0000_0100) != 0;
+        public VersionCapabilities Capabilities => (VersionCapabilities)Frame.CommandParameters.Span[0];
     }
 
     private struct VersionZWaveSoftwareGetCommand : ICommand<VersionZWaveSoftwareGetCommand>
