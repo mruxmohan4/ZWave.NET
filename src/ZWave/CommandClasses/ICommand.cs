@@ -1,6 +1,6 @@
 ﻿namespace ZWave.CommandClasses;
 
-internal interface ICommand<TCommand> where TCommand : struct, ICommand<TCommand>
+internal interface ICommand
 {
     public static abstract CommandClassId CommandClassId { get; }
 

@@ -347,7 +347,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         }
     }
 
-    private struct VersionGetCommand : ICommand<VersionGetCommand>
+    private struct VersionGetCommand : ICommand
     {
         public VersionGetCommand(CommandClassFrame frame)
         {
@@ -367,7 +367,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         }
     }
 
-    private struct VersionReportCommand : ICommand<VersionReportCommand>
+    private struct VersionReportCommand : ICommand
     {
         private readonly byte _version;
 
@@ -431,7 +431,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
                 : null;
     }
 
-    private struct VersionCommandClassGetCommand : ICommand<VersionGetCommand>
+    private struct VersionCommandClassGetCommand : ICommand
     {
         public VersionCommandClassGetCommand(CommandClassFrame frame)
         {
@@ -454,7 +454,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         }
     }
 
-    private struct VersionCommandClassReportCommand : ICommand<VersionCommandClassReportCommand>
+    private struct VersionCommandClassReportCommand : ICommand
     {
         public VersionCommandClassReportCommand(CommandClassFrame frame)
         {
@@ -478,7 +478,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         public byte CommandClassVersion => Frame.CommandParameters.Span[1];
     }
 
-    private struct VersionCapabilitiesGetCommand : ICommand<VersionCapabilitiesGetCommand>
+    private struct VersionCapabilitiesGetCommand : ICommand
     {
         public VersionCapabilitiesGetCommand(CommandClassFrame frame)
         {
@@ -498,7 +498,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         }
     }
 
-    private struct VersionCapabilitiesReportCommand : ICommand<VersionCapabilitiesReportCommand>
+    private struct VersionCapabilitiesReportCommand : ICommand
     {
         public VersionCapabilitiesReportCommand(CommandClassFrame frame)
         {
@@ -517,7 +517,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         public VersionCapabilities Capabilities => (VersionCapabilities)Frame.CommandParameters.Span[0];
     }
 
-    private struct VersionZWaveSoftwareGetCommand : ICommand<VersionZWaveSoftwareGetCommand>
+    private struct VersionZWaveSoftwareGetCommand : ICommand
     {
         public VersionZWaveSoftwareGetCommand(CommandClassFrame frame)
         {
@@ -537,7 +537,7 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         }
     }
 
-    private struct VersionZWaveSoftwareReportCommand : ICommand<VersionZWaveSoftwareReportCommand>
+    private struct VersionZWaveSoftwareReportCommand : ICommand
     {
         public VersionZWaveSoftwareReportCommand(CommandClassFrame frame)
         {

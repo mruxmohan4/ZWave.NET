@@ -110,7 +110,7 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
         }
     }
 
-    private struct BinarySwitchSetCommand : ICommand<BinarySwitchSetCommand>
+    private struct BinarySwitchSetCommand : ICommand
     {
         public BinarySwitchSetCommand(CommandClassFrame frame)
         {
@@ -125,11 +125,12 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
 
         public static BinarySwitchSetCommand Create(byte version, bool value, DurationSet? duration)
         {
-            Span<byte> commandParameters = stackalloc byte[1 + (duration.HasValue ? 1 : 0)];
+            bool includeDuration = version >= 2 && duration.HasValue;
+            Span<byte> commandParameters = stackalloc byte[1 + (includeDuration ? 1 : 0)];
             commandParameters[0] = value ? (byte)0xff : (byte)0x00;
-            if (version >= 2 && duration.HasValue)
+            if (includeDuration)
             {
-                commandParameters[1] = duration.Value.Value;
+                commandParameters[1] = duration!.Value.Value;
             }
 
             CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId, commandParameters);
@@ -137,7 +138,7 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
         }
     }
 
-    private struct BinarySwitchGetCommand : ICommand<BinarySwitchGetCommand>
+    private struct BinarySwitchGetCommand : ICommand
     {
         public BinarySwitchGetCommand(CommandClassFrame frame)
         {
@@ -157,7 +158,7 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
         }
     }
 
-    private struct BinarySwitchReportCommand : ICommand<BinarySwitchReportCommand>
+    private struct BinarySwitchReportCommand : ICommand
     {
         private readonly byte _version;
 

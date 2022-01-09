@@ -164,7 +164,7 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
         }
     }
 
-    private struct BasicSetCommand : ICommand<BasicSetCommand>
+    private struct BasicSetCommand : ICommand
     {
         public BasicSetCommand(CommandClassFrame frame)
         {
@@ -189,7 +189,7 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
         }
     }
 
-    private struct BasicGetCommand : ICommand<BasicGetCommand>
+    private struct BasicGetCommand : ICommand
     {
         public BasicGetCommand(CommandClassFrame frame)
         {
@@ -209,7 +209,7 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
         }
     }
 
-    private struct BasicReportCommand : ICommand<BasicReportCommand>
+    private struct BasicReportCommand : ICommand
     {
         private readonly byte _version;
 

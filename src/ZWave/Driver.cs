@@ -312,7 +312,7 @@ public sealed class Driver : IDisposable
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : struct, IRequestWithCallback<TRequest>
-        where TCallback : struct, Serial.Commands.ICommand<TCallback>
+        where TCallback : struct, ICommand<TCallback>
     {
         byte sessionId = request.SessionId;
 
@@ -345,8 +345,8 @@ public sealed class Driver : IDisposable
     internal async Task<TResponse> SendCommandAsync<TRequest, TResponse>(
         TRequest request,
         CancellationToken cancellationToken)
-        where TRequest : struct, Serial.Commands.ICommand<TRequest>
-        where TResponse : struct, Serial.Commands.ICommand<TResponse>
+        where TRequest : struct, ICommand<TRequest>
+        where TResponse : struct, ICommand<TResponse>
     {
         DataFrame responseFrame = await _commandScheduler.SendCommandAsync(
             request.Frame,
@@ -359,7 +359,7 @@ public sealed class Driver : IDisposable
     internal async Task SendCommandAsync<TRequest>(
         TRequest request,
         CancellationToken cancellationToken)
-        where TRequest : struct, Serial.Commands.ICommand<TRequest>
+        where TRequest : struct, ICommand<TRequest>
     {
         await _commandScheduler.SendCommandAsync(request.Frame)
             .WaitAsync(cancellationToken)
@@ -370,7 +370,7 @@ public sealed class Driver : IDisposable
         TCommand request,
         byte nodeId,
         CancellationToken cancellationToken)
-        where TCommand : struct, CommandClasses.ICommand<TCommand>
+        where TCommand : struct, ICommand
     {
         const TransmissionOptions transmissionOptions = TransmissionOptions.ACK | TransmissionOptions.AutoRoute | TransmissionOptions.Explore;
         byte sessionId = GetNextSessionId();

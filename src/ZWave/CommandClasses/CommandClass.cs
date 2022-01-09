@@ -122,7 +122,7 @@ public abstract class CommandClass
     internal async Task SendCommandAsync<TRequest>(
         TRequest command,
         CancellationToken cancellationToken)
-        where TRequest : struct, ICommand<TRequest>
+        where TRequest : struct, ICommand
     {
         if (!IsCommandSupported(TRequest.CommandId).GetValueOrDefault())
         {
@@ -133,7 +133,7 @@ public abstract class CommandClass
     }
 
     internal async Task AwaitNextReportAsync<TReport>(CancellationToken cancellationToken)
-        where TReport : struct, ICommand<TReport>
+        where TReport : struct, ICommand
     {
         if (TReport.CommandClassId != Info.CommandClass)
         {
