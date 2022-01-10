@@ -167,6 +167,28 @@ public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
             _ => false,
         };
 
+    protected override async Task InterviewCoreAsync(CancellationToken cancellationToken)
+    {
+        if (IsCommandSupported(NotificationCommand.SupportedGet).GetValueOrDefault(false))
+        {
+            SupportedNotifications supportedNotifications = await GetSupportedAsync(cancellationToken).ConfigureAwait(false);
+
+            if (IsCommandSupported(NotificationCommand.EventSupportedGet).GetValueOrDefault(false))
+            {
+                foreach (NotificationType notificationType in supportedNotifications.SupportedNotificationTypes)
+                {
+                    _ = await GetEventSupportedAsync(notificationType, cancellationToken);
+
+                    // TODO: Determine whether this is the push or pull mode. Foe this we need to implement the AGI CC and
+                    //       Some other semi-complicated logic. For now, assume push.
+
+                    // Enable reports
+                    await SetAsync(notificationType, true, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+    }
+
     public async Task<Notification> GetV1Async(byte alarmType, CancellationToken cancellationToken)
     {
         var command = NotificationGetV1Command.Create(alarmType);
@@ -190,7 +212,7 @@ public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
         // No report is expected from this command.
     }
 
-    public async Task<SupportedNotifications> SupportedGetAsync(CancellationToken cancellationToken)
+    public async Task<SupportedNotifications> GetSupportedAsync(CancellationToken cancellationToken)
     {
         var command = NotificationSupportedGetCommand.Create();
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
@@ -198,7 +220,7 @@ public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
         return SupportedNotifications!.Value;
     }
 
-    public async Task<SupportedNotificationEvents> EventSupportedGet(NotificationType notificationType, CancellationToken cancellationToken)
+    public async Task<SupportedNotificationEvents> GetEventSupportedAsync(NotificationType notificationType, CancellationToken cancellationToken)
     {
         var command = NotificationEventSupportedGetCommand.Create(notificationType);
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);

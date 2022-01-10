@@ -122,6 +122,11 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
             _ => false,
         };
 
+    protected override async Task InterviewCoreAsync(CancellationToken cancellationToken)
+    {
+        _ = await GetAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Request the status of a supporting device
     /// </summary>

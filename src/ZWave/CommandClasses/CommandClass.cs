@@ -38,7 +38,7 @@ public abstract class CommandClass
     // of Dictionary<CommandId, List<TCS>> which would have faster lookups
     private readonly List<AwaitedReport> _awaitedReports = new List<AwaitedReport>();
 
-    private Task? _initializeTask;
+    private Task? _interviewTask;
 
     internal CommandClass(
         CommandClassInfo info,
@@ -77,15 +77,27 @@ public abstract class CommandClass
         Version = version;
     }
 
-    internal Task InitializeAsync(CancellationToken cancellationToken)
+    internal Task InterviewAsync(CancellationToken cancellationToken)
     {
-        _initializeTask = InitializeCoreAsync(cancellationToken);
-        return _initializeTask;
+        _interviewTask = Task.Run(
+            async () =>
+            {
+                await WaitForDependenciesInterviewAsync();
+                await InterviewCoreAsync(cancellationToken);
+            },
+            cancellationToken);
+        return _interviewTask;
     }
 
-    protected virtual Task InitializeCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    protected abstract Task InterviewCoreAsync(CancellationToken cancellationToken);
 
-    internal Task WaitForInitializedAsync() => _initializeTask ?? throw new InvalidOperationException("The command class has not begun initialization yet");
+    internal Task WaitForInterviewAsync() => _interviewTask ?? throw new InvalidOperationException("The command class has not begun its interview yet");
+
+    protected virtual async Task WaitForDependenciesInterviewAsync()
+    {
+        // Almost all CCs depend on knowing their own version.
+        await Node.GetCommandClass(CommandClassId.Version).WaitForInterviewAsync().ConfigureAwait(false);
+    }
 
     protected abstract bool? IsCommandSupported(byte command);
 

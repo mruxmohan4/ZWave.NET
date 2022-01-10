@@ -143,7 +143,7 @@ public sealed class Node
                     foreach (KeyValuePair<CommandClassId, CommandClass> pair in _commandClasses)
                     {
                         CommandClass commandClass = pair.Value;
-                        Task initializationTask = commandClass.InitializeAsync(cancellationToken);
+                        Task initializationTask = commandClass.InterviewAsync(cancellationToken);
                         
                         // Many CCs don't require async initializaton, so avoid adding to the list
                         if (!initializationTask.IsCompleted)

@@ -231,6 +231,12 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
             _ => false,
         };
 
+    protected override Task WaitForDependenciesInterviewAsync()
+    {
+        // Overriding since the default is to depends on this CC.
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Request the library type, protocol version and application version from a device that supports
     /// the Version Command Class
@@ -276,22 +282,17 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         return SoftwareInfo!.Value;
     }
 
-    protected override async Task InitializeCoreAsync(CancellationToken cancellationToken)
+    protected override async Task InterviewCoreAsync(CancellationToken cancellationToken)
     {
-        await base.InitializeCoreAsync(cancellationToken);
-
         // Populate the version of every command class the node implements
         foreach (KeyValuePair<CommandClassId, CommandClassInfo> pair in Node.CommandClasses)
         {
             CommandClassId commandClassId = pair.Key;
-            await GetCommandClassAsync(commandClassId, cancellationToken).ConfigureAwait(false);
+            _ = await GetCommandClassAsync(commandClassId, cancellationToken).ConfigureAwait(false);
         }
 
-        // Preload the version information for the node
-        await GetAsync(cancellationToken).ConfigureAwait(false);
-
-        // Preload this CC's capabilitiles
-        await GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+        _ = await GetAsync(cancellationToken).ConfigureAwait(false);
+        _ = await GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     protected override void ProcessCommandCore(CommandClassFrame frame)

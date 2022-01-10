@@ -65,6 +65,11 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
             _ => false,
         };
 
+    protected override async Task InterviewCoreAsync(CancellationToken cancellationToken)
+    {
+        _ = await GetAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Request the current On/Off state from a node
     /// </summary>

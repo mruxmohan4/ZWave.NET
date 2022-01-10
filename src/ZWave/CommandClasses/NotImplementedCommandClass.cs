@@ -16,6 +16,8 @@ internal sealed class NotImplementedCommandClass : CommandClass<NotImplementedCo
     /// <inheritdoc />
     public override bool? IsCommandSupported(NotImplementedCommand command) => false;
 
+    protected override Task InterviewCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
     protected override void ProcessCommandCore(CommandClassFrame frame)
     {
     }
