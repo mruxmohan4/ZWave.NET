@@ -34,4 +34,9 @@ public enum ZWaveErrorCode
     /// The command is not supported by the node.
     /// </summary>
     CommandNotSupported,
+
+    /// <summary>
+    /// A powerlevel test was attempted on a node which doesn't support it.
+    /// </summary>
+    PowerlevelTestUnsupportedNode,
 }

@@ -132,6 +132,18 @@ internal class MultilevelSwitchCommandClass : CommandClass<MultilevelSwitchComma
     }
 
     /// <summary>
+    /// Set a multilevel value in a supporting device.
+    /// </summary>
+    public async Task SetAsync(
+        GenericValue value,
+        DurationSet? duration,
+        CancellationToken cancellationToken)
+    {
+        var command = MultilevelSwitchSetCommand.Create(EffectiveVersion, value, duration);
+        await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Request the status of a multilevel device.
     /// </summary>
     public async Task<MultilevelSwitchState> GetAsync(CancellationToken cancellationToken)

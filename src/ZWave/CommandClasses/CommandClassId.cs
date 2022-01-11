@@ -99,8 +99,14 @@ public enum CommandClassId : byte
     /// or system failure
     /// </summary>
     Notification = 0x71,
+
     ManufacturerSpecific = 0x72,
+
+    /// <summary>
+    /// The Powerlevel Command Class defines RF transmit power controlling Commands useful when installing or testing a network.
+    /// </summary>
     Powerlevel = 0x73,
+
     InclusionController = 0x74,
     Protection = 0x75,
     Lock = 0x76,

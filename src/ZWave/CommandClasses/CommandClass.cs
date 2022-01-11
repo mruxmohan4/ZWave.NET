@@ -32,8 +32,6 @@ public abstract class CommandClass
 {
     private record struct AwaitedReport(byte CommandId, TaskCompletionSource TaskCompletionSource);
 
-    private readonly Driver _driver;
-
     // We don't expect this to get very large at all, so using a simple list to save on memory instead
     // of Dictionary<CommandId, List<TCS>> which would have faster lookups
     private readonly List<AwaitedReport> _awaitedReports = new List<AwaitedReport>();
@@ -46,11 +44,13 @@ public abstract class CommandClass
         Node node)
     {
         Info = info;
-        _driver = driver;
+        Driver = driver;
         Node = node;
     }
 
     public CommandClassInfo Info { get; private set; }
+
+    protected Driver Driver { get; }
 
     public Node Node { get; }
 
@@ -141,7 +141,7 @@ public abstract class CommandClass
             throw new ZWaveException(ZWaveErrorCode.CommandNotSupported, "This command is not supported by this node");
         }
 
-        await _driver.SendCommandAsync(command, Node.Id, cancellationToken).ConfigureAwait(false);
+        await Driver.SendCommandAsync(command, Node.Id, cancellationToken).ConfigureAwait(false);
     }
 
     internal async Task AwaitNextReportAsync<TReport>(CancellationToken cancellationToken)
