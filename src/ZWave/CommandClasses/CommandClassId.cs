@@ -19,7 +19,11 @@ public enum CommandClassId : byte
     /// </summary>
     BinarySwitch = 0x25,
 
+    /// <summary>
+    /// The Multilevel Switch Command Class is used to control devices with multilevel capability.
+    /// </summary>
     MultilevelSwitch = 0x26,
+
     AllSwitch = 0x27,
     BinaryToggleSwitch = 0x28,
     MultilevelToggleSwitch = 0x29,

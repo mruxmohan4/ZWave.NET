@@ -292,7 +292,16 @@ public sealed class VersionCommandClass : CommandClass<VersionCommand>
         }
 
         _ = await GetAsync(cancellationToken).ConfigureAwait(false);
-        _ = await GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (IsCommandSupported(VersionCommand.CapabilitiesGet).GetValueOrDefault())
+        {
+            _ = await GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (IsCommandSupported(VersionCommand.ZWaveSoftwareGet).GetValueOrDefault())
+        {
+            _ = await GetZWaveSoftwareAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     protected override void ProcessCommandCore(CommandClassFrame frame)

@@ -137,19 +137,15 @@ public sealed class Node
                 await _nodeInfoRecievedEvent.WaitAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 // Initialize command classes
-                var commandClassInitializationTasks = new List<Task>();
+                List<Task> commandClassInitializationTasks;
                 lock (_commandClasses)
                 {
+                    commandClassInitializationTasks = new List<Task>(_commandClasses.Count);
                     foreach (KeyValuePair<CommandClassId, CommandClass> pair in _commandClasses)
                     {
                         CommandClass commandClass = pair.Value;
                         Task initializationTask = commandClass.InterviewAsync(cancellationToken);
-                        
-                        // Many CCs don't require async initializaton, so avoid adding to the list
-                        if (!initializationTask.IsCompleted)
-                        {
-                            commandClassInitializationTasks.Add(initializationTask);
-                        }
+                        commandClassInitializationTasks.Add(initializationTask);
                     }
                 }
 

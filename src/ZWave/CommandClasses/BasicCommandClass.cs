@@ -1,59 +1,5 @@
 ﻿namespace ZWave.CommandClasses;
 
-/// <summary>
-/// An interpreted value from or for a node
-/// </summary>
-/// <remarks>
-/// As defined by SDS13781 Table 21
-/// </remarks>
-public struct BasicValue
-{
-    public BasicValue(byte value)
-    {
-        Value = value;
-    }
-
-    public BasicValue(int level)
-    {
-        if (level < 0 || level > 100)
-        {
-            throw new ArgumentOutOfRangeException(nameof(level), level, "The value must be in the range [0..100]");
-        }
-
-        Value = level == 100 ? (byte)0xff : (byte)level;
-    }
-
-    public BasicValue(bool state)
-    {
-        Value = state ? (byte)0xff : (byte)0;
-    }
-
-    public byte Value { get; }
-
-    public int? Level => Value switch
-    {
-        <= 99 => Value,
-        0xfe => null, // Unknown
-        0xff => 100,
-        _ => null, // Reserved. Treat as unknown
-    };
-
-    public bool? State => Value switch
-    {
-        0 => false,
-        <= 99 => true,
-        0xfe => null, // Unknown
-        0xff => true,
-        _ => null, // Reserved. Treat as unknown
-    };
-
-    public static implicit operator BasicValue(byte b) => new BasicValue(b);
-
-    public static implicit operator BasicValue(int i) => new BasicValue(i);
-
-    public static implicit operator BasicValue(bool b) => new BasicValue(b);
-}
-
 public enum BasicCommand : byte
 {
     /// <summary>
@@ -75,8 +21,8 @@ public enum BasicCommand : byte
 public readonly struct BasicState
 {
     public BasicState(
-        BasicValue currentValue,
-        BasicValue? targetValue,
+        GenericValue currentValue,
+        GenericValue? targetValue,
         DurationReport? duration)
     {
         CurrentValue = currentValue;
@@ -87,12 +33,12 @@ public readonly struct BasicState
     /// <summary>
     /// The current value of the device hardware
     /// </summary>
-    public BasicValue CurrentValue { get; }
+    public GenericValue CurrentValue { get; }
 
     /// <summary>
     /// The the target value of an ongoing transition or the most recent transition.
     /// </summary>
-    public BasicValue? TargetValue { get; }
+    public GenericValue? TargetValue { get; }
 
     /// <summary>
     /// The time needed to reach the Target Value at the actual transition rate.
@@ -141,7 +87,7 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
     /// <summary>
     /// Set a value in a supporting device
     /// </summary>
-    public async Task SetAsync(BasicValue targetValue, CancellationToken cancellationToken)
+    public async Task SetAsync(GenericValue targetValue, CancellationToken cancellationToken)
     {
         var command = BasicSetCommand.Create(targetValue);
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
@@ -182,9 +128,9 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
 
         public CommandClassFrame Frame { get; }
 
-        public BasicValue Value => Frame.CommandParameters.Span[0];
+        public GenericValue Value => Frame.CommandParameters.Span[0];
 
-        public static BasicSetCommand Create(BasicValue value)
+        public static BasicSetCommand Create(GenericValue value)
         {
             Span<byte> commandParameters = stackalloc byte[1];
             commandParameters[0] = value.Value;
@@ -233,12 +179,12 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
         /// <summary>
         /// The current value of the device hardware
         /// </summary>
-        public BasicValue CurrentValue => Frame.CommandParameters.Span[0];
+        public GenericValue CurrentValue => Frame.CommandParameters.Span[0];
 
         /// <summary>
         /// The the target value of an ongoing transition or the most recent transition.
         /// </summary>
-        public BasicValue? TargetValue => _version >= 2 && Frame.CommandParameters.Length > 1
+        public GenericValue? TargetValue => _version >= 2 && Frame.CommandParameters.Length > 1
             ? Frame.CommandParameters.Span[1]
             : null;
 
