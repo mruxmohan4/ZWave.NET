@@ -36,7 +36,7 @@ public readonly struct BasicState
     public GenericValue CurrentValue { get; }
 
     /// <summary>
-    /// The the target value of an ongoing transition or the most recent transition.
+    /// The target value of an ongoing transition or the most recent transition.
     /// </summary>
     public GenericValue? TargetValue { get; }
 
@@ -182,7 +182,7 @@ public sealed class BasicCommandClass : CommandClass<BasicCommand>
         public GenericValue CurrentValue => Frame.CommandParameters.Span[0];
 
         /// <summary>
-        /// The the target value of an ongoing transition or the most recent transition.
+        /// The target value of an ongoing transition or the most recent transition.
         /// </summary>
         public GenericValue? TargetValue => _version >= 2 && Frame.CommandParameters.Length > 1
             ? Frame.CommandParameters.Span[1]

@@ -185,7 +185,7 @@ public sealed class BinarySwitchCommandClass : CommandClass<BinarySwitchCommand>
         public bool? CurrentValue => ParseBool(Frame.CommandParameters.Span[0]);
 
         /// <summary>
-        /// The the target value of an ongoing transition or the most recent transition.
+        /// The target value of an ongoing transition or the most recent transition.
         /// </summary>
         public bool? TargetValue => _version >= 2 && Frame.CommandParameters.Length > 1
             ? ParseBool(Frame.CommandParameters.Span[1])

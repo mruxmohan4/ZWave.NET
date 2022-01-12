@@ -87,7 +87,7 @@ public readonly struct MultilevelSwitchState
     public GenericValue CurrentValue { get; }
 
     /// <summary>
-    /// The the target value of an ongoing transition or the most recent transition.
+    /// The target value of an ongoing transition or the most recent transition.
     /// </summary>
     public GenericValue? TargetValue { get; }
 
@@ -292,7 +292,7 @@ internal class MultilevelSwitchCommandClass : CommandClass<MultilevelSwitchComma
         public GenericValue CurrentValue => Frame.CommandParameters.Span[0];
 
         /// <summary>
-        /// The the target value of an ongoing transition or the most recent transition.
+        /// The target value of an ongoing transition or the most recent transition.
         /// </summary>
         public GenericValue? TargetValue => _version >= 4 && Frame.CommandParameters.Length > 1
             ? Frame.CommandParameters.Span[1]

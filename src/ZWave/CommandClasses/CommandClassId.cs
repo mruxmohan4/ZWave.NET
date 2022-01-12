@@ -33,7 +33,12 @@ public enum CommandClassId : byte
     BinarySensor = 0x30,
     MultilevelSensor = 0x31,
     Meter = 0x32,
+
+    /// <summary>
+    /// The Color Switch Command Class is used to control color capable devices. 
+    /// </summary>
     ColorSwitch = 0x33,
+
     NetworkManagementInclusion = 0x34,
     PulseMeter = 0x35,
     BasicTariffInformation = 0x36,
