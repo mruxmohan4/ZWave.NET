@@ -141,7 +141,7 @@ public readonly struct SupportedNotificationEvents
 [CommandClass(CommandClassId.Notification)]
 public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
 {
-    private readonly Dictionary<NotificationType, SupportedNotificationEvents?> _supportedNotificationEvents = new Dictionary<NotificationType, SupportedNotificationEvents?>();
+    private Dictionary<NotificationType, SupportedNotificationEvents?>? _supportedNotificationEvents;
 
     internal NotificationCommandClass(CommandClassInfo info, Driver driver, Node node)
         : base(info, driver, node)
@@ -153,8 +153,7 @@ public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
 
     public SupportedNotifications? SupportedNotifications { get; private set; }
 
-    // TODO: This is populated a bit awkwardly
-    public IReadOnlyDictionary<NotificationType, SupportedNotificationEvents?> SupportedNotificationEvents => _supportedNotificationEvents;
+    public IReadOnlyDictionary<NotificationType, SupportedNotificationEvents?>? SupportedNotificationEvents => _supportedNotificationEvents;
 
     /// <inheritdoc />
     public override bool? IsCommandSupported(NotificationCommand command)
@@ -225,7 +224,7 @@ public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
         var command = NotificationEventSupportedGetCommand.Create(notificationType);
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<NotificationEventSupportedReportCommand>(cancellationToken).ConfigureAwait(false);
-        return _supportedNotificationEvents[notificationType]!.Value;
+        return _supportedNotificationEvents![notificationType]!.Value;
     }
 
     protected override void ProcessCommandCore(CommandClassFrame frame)
@@ -257,15 +256,31 @@ public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
             case NotificationCommand.SupportedReport:
             {
                 var command = new NotificationSupportedReportCommand(frame);
+                IReadOnlySet<NotificationType> supportedNotificationTypes = command.SupportedNotificationTypes;
                 SupportedNotifications = new SupportedNotifications(
                     command.SupportsV1Alarm,
-                    command.SupportedNotificationTypes);
+                    supportedNotificationTypes);
+
+                var newSupportedNotificationEvents = new Dictionary<NotificationType, SupportedNotificationEvents?>(supportedNotificationTypes.Count);
+                foreach (NotificationType notificationType in supportedNotificationTypes)
+                {
+                    // Persist any existing known state.
+                    if (SupportedNotificationEvents == null
+                        || !SupportedNotificationEvents.TryGetValue(notificationType, out SupportedNotificationEvents? supportedNotificationEvents))
+                    {
+                        supportedNotificationEvents = null;
+                    }
+
+                    newSupportedNotificationEvents.Add(notificationType, supportedNotificationEvents);
+                }
+
+                _supportedNotificationEvents = newSupportedNotificationEvents;
                 break;
             }
             case NotificationCommand.EventSupportedReport:
             {
                 var command = new NotificationEventSupportedReportCommand(frame);
-                _supportedNotificationEvents[command.NotificationType] = new SupportedNotificationEvents(
+                _supportedNotificationEvents![command.NotificationType] = new SupportedNotificationEvents(
                     command.NotificationType,
                     command.SupportedNotificationEvents);
                 break;
