@@ -196,7 +196,7 @@ public sealed class PowerlevelCommandClass : CommandClass<PowerlevelCommand>
         if (testNode.FrequentListeningMode != FrequentListeningMode.None)
         {
             throw new ZWaveException(
-                ZWaveErrorCode.PowerlevelTestUnsupportedNode,
+                ZWaveErrorCode.CommandInvalidArgument,
                 $"The test node {testNodeId} is FLiRS and cannot be used for a Powerlevel test");
         }
 

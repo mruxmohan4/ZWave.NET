@@ -31,7 +31,12 @@ public enum CommandClassId : byte
     SceneActuatorConfiguration = 0x2c,
     SceneControllerConfiguration = 0x2d,
     BinarySensor = 0x30,
+
+    /// <summary>
+    /// The Multilevel Sensor Command Class is used to advertise numerical sensor readings.
+    /// </summary>
     MultilevelSensor = 0x31,
+
     Meter = 0x32,
 
     /// <summary>

@@ -4,8 +4,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ZWave.BuildTools;
 
-#pragma warning disable RS2008 // Enable analyzer release tracking. These are internal to the repo; we don't release them.
-
 [Generator]
 public sealed class CommandClassFactoryGenerator : ISourceGenerator
 {
@@ -16,6 +14,7 @@ public sealed class CommandClassFactoryGenerator : ISourceGenerator
         category: "ZWave.BuildTools",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
     public void Initialize(GeneratorInitializationContext context)
     {
         const string attributeSource = @"

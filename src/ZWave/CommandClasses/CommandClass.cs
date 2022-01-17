@@ -30,7 +30,10 @@ public abstract class CommandClass<TCommand> : CommandClass
 
 public abstract class CommandClass
 {
-    private record struct AwaitedReport(byte CommandId, TaskCompletionSource TaskCompletionSource);
+    private record struct AwaitedReport(
+        byte CommandId,
+        Predicate<CommandClassFrame>? Predicate,
+        TaskCompletionSource<CommandClassFrame> TaskCompletionSource);
 
     // We don't expect this to get very large at all, so using a simple list to save on memory instead
     // of Dictionary<CommandId, List<TCS>> which would have faster lookups
@@ -114,9 +117,10 @@ public abstract class CommandClass
             while (i < _awaitedReports.Count)
             {
                 AwaitedReport awaitedReport = _awaitedReports[i];
-                if (awaitedReport.CommandId == frame.CommandId)
+                if (awaitedReport.CommandId == frame.CommandId
+                    && (awaitedReport.Predicate == null || awaitedReport.Predicate(frame)))
                 {
-                    awaitedReport.TaskCompletionSource.SetResult();
+                    awaitedReport.TaskCompletionSource.SetResult(frame);
                     _awaitedReports.RemoveAt(i);
                 }
                 else
@@ -144,7 +148,13 @@ public abstract class CommandClass
         await Driver.SendCommandAsync(command, Node.Id, cancellationToken).ConfigureAwait(false);
     }
 
-    internal async Task AwaitNextReportAsync<TReport>(CancellationToken cancellationToken)
+    internal Task<CommandClassFrame> AwaitNextReportAsync<TReport>(CancellationToken cancellationToken)
+        where TReport : struct, ICommand
+        => AwaitNextReportAsync<TReport>(predicate: null, cancellationToken);
+
+    internal async Task<CommandClassFrame> AwaitNextReportAsync<TReport>(
+        Predicate<CommandClassFrame>? predicate,
+        CancellationToken cancellationToken)
         where TReport : struct, ICommand
     {
         if (TReport.CommandClassId != Info.CommandClass)
@@ -152,8 +162,8 @@ public abstract class CommandClass
             throw new ArgumentException($"Report is for the wrong command class. Expected {Info.CommandClass} but found {TReport.CommandClassId}.", nameof(TReport));
         }
 
-        var tcs = new TaskCompletionSource();
-        var awaitedReport = new AwaitedReport(TReport.CommandId, tcs);
+        var tcs = new TaskCompletionSource<CommandClassFrame>();
+        var awaitedReport = new AwaitedReport(TReport.CommandId, predicate, tcs);
         lock (_awaitedReports)
         {
             _awaitedReports.Add(awaitedReport);
@@ -161,7 +171,7 @@ public abstract class CommandClass
 
         using (cancellationToken.Register(static state => ((TaskCompletionSource)state!).TrySetCanceled(), tcs))
         {
-            await tcs.Task;
+            return await tcs.Task;
         }
     }
 }

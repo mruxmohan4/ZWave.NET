@@ -36,7 +36,12 @@ public enum ZWaveErrorCode
     CommandNotSupported,
 
     /// <summary>
-    /// A powerlevel test was attempted on a node which doesn't support it.
+    /// The command is not ready to execute yet as it relies on the interview process.
     /// </summary>
-    PowerlevelTestUnsupportedNode,
+    CommandNotReady,
+
+    /// <summary>
+    /// The command was called with an invalid argument.
+    /// </summary>
+    CommandInvalidArgument,
 }

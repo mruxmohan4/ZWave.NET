@@ -185,7 +185,7 @@ internal class MultilevelSwitchCommandClass : CommandClass<MultilevelSwitchComma
     /// </summary>
     public async Task<MultilevelSwitchType> GetSupportedAsync(CancellationToken cancellationToken)
     {
-        var command = MultilevelSwitcSupportedGetCommand.Create();
+        var command = MultilevelSwitchSupportedGetCommand.Create();
         await SendCommandAsync(command, cancellationToken).ConfigureAwait(false);
         await AwaitNextReportAsync<MultilevelSwitchReportCommand>(cancellationToken).ConfigureAwait(false);
         return SwitchType!.Value;
@@ -367,9 +367,9 @@ internal class MultilevelSwitchCommandClass : CommandClass<MultilevelSwitchComma
         }
     }
 
-    private struct MultilevelSwitcSupportedGetCommand : ICommand
+    private struct MultilevelSwitchSupportedGetCommand : ICommand
     {
-        public MultilevelSwitcSupportedGetCommand(CommandClassFrame frame)
+        public MultilevelSwitchSupportedGetCommand(CommandClassFrame frame)
         {
             Frame = frame;
         }
@@ -380,10 +380,10 @@ internal class MultilevelSwitchCommandClass : CommandClass<MultilevelSwitchComma
 
         public CommandClassFrame Frame { get; }
 
-        public static MultilevelSwitcSupportedGetCommand Create()
+        public static MultilevelSwitchSupportedGetCommand Create()
         {
             CommandClassFrame frame = CommandClassFrame.Create(CommandClassId, CommandId);
-            return new MultilevelSwitcSupportedGetCommand(frame);
+            return new MultilevelSwitchSupportedGetCommand(frame);
         }
     }
 

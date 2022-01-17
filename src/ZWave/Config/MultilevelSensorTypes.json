@@ -1,0 +1,964 @@
+﻿[
+  {
+    "id": "0x01",
+    "name": "AirTemperature",
+    "displayName": "Air temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x02",
+    "name": "GeneralPurpose",
+    "displayName": "General purpose",
+    "scales": [
+      {
+        "id": "0x01",
+        "label": "Percentage value",
+        "unit": "%"
+      },
+      {
+        "id": "0x02",
+        "label": "Dimensionless value"
+      }
+    ]
+  },
+  {
+    "id": "0x03",
+    "name": "Illuminance",
+    "displayName": "Illuminance",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Percentage value",
+        "unit": "%"
+      },
+      {
+        "id": "0x01",
+        "label": "Lux",
+        "unit": "Lux"
+      }
+    ]
+  },
+  {
+    "id": "0x04",
+    "name": "Power",
+    "displayName": "Power",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Watt",
+        "unit": "W"
+      },
+      {
+        "id": "0x01",
+        "label": "Btu/h",
+        "unit": "Btu/h"
+      }
+    ]
+  },
+  {
+    "id": "0x05",
+    "name": "Humidity",
+    "displayName": "Humidity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Percentage value",
+        "unit": "%"
+      },
+      {
+        "id": "0x01",
+        "label": "Absolute humidity",
+        "unit": "g/m³"
+      }
+    ]
+  },
+  {
+    "id": "0x06",
+    "name": "Velocity",
+    "displayName": "Velocity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "m/s",
+        "unit": "m/s"
+      },
+      {
+        "id": "0x01",
+        "label": "Mph",
+        "unit": "Mph"
+      }
+    ]
+  },
+  {
+    "id": "0x07",
+    "name": "Direction",
+    "displayName": "Direction",
+    "scaleType": "Direction"
+  },
+  {
+    "id": "0x08",
+    "name": "AtmosphericPressure",
+    "displayName": "Atmospheric pressure",
+    "scaleType": "AirPressure"
+  },
+  {
+    "id": "0x09",
+    "name": "BarometricPressure",
+    "displayName": "Barometric pressure",
+    "scaleType": "AirPressure"
+  },
+  {
+    "id": "0x0a",
+    "name": "SolarRadiation",
+    "displayName": "Solar radiation",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Watt per square meter",
+        "unit": "W/m²"
+      }
+    ]
+  },
+  {
+    "id": "0x0b",
+    "name": "DewPoint",
+    "displayName": "Dew point",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x0c",
+    "name": "RainRate",
+    "displayName": "Rain rate",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Millimeter/hour",
+        "unit": "mm/h"
+      },
+      {
+        "id": "0x01",
+        "label": "Inches per hour",
+        "unit": "in/h"
+      }
+    ]
+  },
+  {
+    "id": "0x0d",
+    "name": "TideLevel",
+    "displayName": "Tide level",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Meter",
+        "unit": "m"
+      },
+      {
+        "id": "0x01",
+        "label": "Feet",
+        "unit": "ft"
+      }
+    ]
+  },
+  {
+    "id": "0x0e",
+    "name": "Weight",
+    "displayName": "Weight",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Kilogram",
+        "unit": "kg"
+      },
+      {
+        "id": "0x01",
+        "label": "Pounds",
+        "unit": "lb"
+      }
+    ]
+  },
+  {
+    "id": "0x0f",
+    "name": "Voltage",
+    "displayName": "Voltage",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Volt",
+        "unit": "V"
+      },
+      {
+        "id": "0x01",
+        "label": "Millivolt",
+        "unit": "mV"
+      }
+    ]
+  },
+  {
+    "id": "0x10",
+    "name": "Current",
+    "displayName": "Current",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Ampere",
+        "unit": "A"
+      },
+      {
+        "id": "0x01",
+        "label": "Milliampere",
+        "unit": "mA"
+      }
+    ]
+  },
+  {
+    "id": "0x11",
+    "name": "CarbonDioxide",
+    "displayName": "Carbon dioxide (CO₂) level",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Parts/million",
+        "unit": "ppm"
+      }
+    ]
+  },
+  {
+    "id": "0x12",
+    "name": "AirFlow",
+    "displayName": "Air flow",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Cubic meter per hour",
+        "unit": "m³/h"
+      },
+      {
+        "id": "0x01",
+        "label": "Cubic feet per minute",
+        "unit": "cfm"
+      }
+    ]
+  },
+  {
+    "id": "0x13",
+    "name": "TankCapacity",
+    "displayName": "Tank capacity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Liter",
+        "unit": "l"
+      },
+      {
+        "id": "0x01",
+        "label": "Cubic meter",
+        "unit": "m³"
+      }
+    ]
+  },
+  {
+    "id": "0x14",
+    "name": "Distance",
+    "displayName": "Distance",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Meter",
+        "unit": "m"
+      },
+      {
+        "id": "0x01",
+        "label": "Centimeter",
+        "unit": "cm"
+      },
+      {
+        "id": "0x02",
+        "label": "Feet",
+        "unit": "ft"
+      }
+    ]
+  },
+  {
+    "id": "0x15",
+    "name": "AnglePosition",
+    "displayName": "Angle position",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Percentage value",
+        "unit": "%"
+      },
+      {
+        "id": "0x01",
+        "label": "Degrees relative to north pole of standing eye view",
+        "unit": "°N"
+      },
+      {
+        "id": "0x01",
+        "label": "Degrees relative to south pole of standing eye view",
+        "unit": "°S"
+      }
+    ]
+  },
+  {
+    "id": "0x16",
+    "name": "Rotation",
+    "displayName": "Rotation",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Revolutions per minute",
+        "unit": "rpm"
+      },
+      {
+        "id": "0x01",
+        "label": "Hertz",
+        "unit": "Hz"
+      }
+    ]
+  },
+  {
+    "id": "0x17",
+    "name": "WaterTemperature",
+    "displayName": "Water temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x18",
+    "name": "SoilTemperature",
+    "displayName": "Soil temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x19",
+    "name": "SeismicIntensity",
+    "displayName": "Seismic intensity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mercalli"
+      },
+      {
+        "id": "0x01",
+        "label": "European Macroseismic"
+      },
+      {
+        "id": "0x02",
+        "label": "Liedu"
+      },
+      {
+        "id": "0x03",
+        "label": "Shindo"
+      }
+    ]
+  },
+  {
+    "id": "0x1a",
+    "name": "SeismicMagnitude",
+    "displayName": "Seismic magnitude",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Local"
+      },
+      {
+        "id": "0x01",
+        "label": "Moment"
+      },
+      {
+        "id": "0x02",
+        "label": "Surface wave"
+      },
+      {
+        "id": "0x03",
+        "label": "Body wave"
+      }
+    ]
+  },
+  {
+    "id": "0x1b",
+    "name": "Ultraviolet",
+    "displayName": "Ultraviolet",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "UV index"
+      }
+    ]
+  },
+  {
+    "id": "0x1c",
+    "name": "ElectricalResistivity",
+    "displayName": "Electrical resistivity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Ohm meter",
+        "unit": "Ωm"
+      }
+    ]
+  },
+  {
+    "id": "0x1d",
+    "name": "ElectricalConductivity",
+    "displayName": "Electrical conductivity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Siemens per meter",
+        "unit": "S/m"
+      }
+    ]
+  },
+  {
+    "id": "0x1e",
+    "name": "Loudness",
+    "displayName": "Loudness",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Decibel",
+        "unit": "dB"
+      },
+      {
+        "id": "0x01",
+        "label": "A-weighted decibels",
+        "unit": "dBA"
+      }
+    ]
+  },
+  {
+    "id": "0x1f",
+    "name": "Moisture",
+    "displayName": "Moisture",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Percentage value",
+        "unit": "%"
+      },
+      {
+        "id": "0x01",
+        "label": "Volume water content",
+        "unit": "m³/m³"
+      },
+      {
+        "id": "0x02",
+        "label": "Impedance",
+        "unit": "kΩ"
+      },
+      {
+        "id": "0x03",
+        "label": "Water activity",
+        "unit": "aw"
+      }
+    ]
+  },
+  {
+    "id": "0x20",
+    "name": "Frequency",
+    "displayName": "Frequency",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Hertz",
+        "unit": "Hz"
+      },
+      {
+        "id": "0x01",
+        "label": "Kilohertz",
+        "unit": "kHz"
+      }
+    ]
+  },
+  {
+    "id": "0x21",
+    "name": "Time",
+    "displayName": "Time",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Seconds",
+        "unit": "s"
+      }
+    ]
+  },
+  {
+    "id": "0x22",
+    "name": "TargetTemperature",
+    "displayName": "Target temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x23",
+    "name": "ParticulateMatter2_5",
+    "displayName": "Particulate Matter 2.5",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mole per cubic meter",
+        "unit": "mol/m³"
+      },
+      {
+        "id": "0x01",
+        "label": "Microgram per cubic meter",
+        "unit": "µg/m³"
+      }
+    ]
+  },
+  {
+    "id": "0x24",
+    "name": "Formaldehyde",
+    "displayName": "Formaldehyde (CH₂O) level",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mole per cubic meter",
+        "unit": "mol/m³"
+      }
+    ]
+  },
+  {
+    "id": "0x25",
+    "name": "RadonConcentration",
+    "displayName": "Radon concentration",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Becquerel per cubic meter",
+        "unit": "bq/m³"
+      },
+      {
+        "id": "0x01",
+        "label": "Picocuries per liter",
+        "unit": "pCi/l"
+      }
+    ]
+  },
+  {
+    "id": "0x26",
+    "name": "MethaneDensity",
+    "displayName": "Methane (CH₄) density",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mole per cubic meter",
+        "unit": "mol/m³"
+      }
+    ]
+  },
+  {
+    "id": "0x27",
+    "name": "VolatileOrganicCompoundLevel",
+    "displayName": "Volatile Organic Compound level",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mole per cubic meter",
+        "unit": "mol/m³"
+      },
+      {
+        "id": "0x01",
+        "label": "Parts/million",
+        "unit": "ppm"
+      }
+    ]
+  },
+  {
+    "id": "0x28",
+    "name": "CarbonMonoxideLevel",
+    "displayName": "Carbon monoxide (CO) level",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mole per cubic meter",
+        "unit": "mol/m³"
+      },
+      {
+        "id": "0x01",
+        "label": "Parts/million",
+        "unit": "ppm"
+      }
+    ]
+  },
+  {
+    "id": "0x29",
+    "name": "SoilHumidity",
+    "displayName": "Soil humidity",
+    "scaleType": "Percentage"
+  },
+  {
+    "id": "0x2a",
+    "name": "SoilReactivity",
+    "displayName": "Soil reactivity",
+    "scaleType": "Acidity"
+  },
+  {
+    "id": "0x2b",
+    "name": "SoilSalinity",
+    "displayName": "Soil salinity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mole per cubic meter",
+        "unit": "mol/m³"
+      }
+    ]
+  },
+  {
+    "id": "0x2c",
+    "name": "HeartRate",
+    "displayName": "Heart rate",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Beats per minute",
+        "unit": "bpm"
+      }
+    ]
+  },
+  {
+    "id": "0x2d",
+    "name": "BloodPressure",
+    "displayName": "Blood pressure",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Systolic",
+        "unit": "mmHg"
+      },
+      {
+        "id": "0x01",
+        "label": "Diastolic",
+        "unit": "mmHg"
+      }
+    ]
+  },
+  {
+    "id": "0x2e",
+    "name": "MuscleMass",
+    "displayName": "Muscle mass",
+    "scaleType": "Mass"
+  },
+  {
+    "id": "0x2f",
+    "name": "FatMass",
+    "displayName": "Fat mass",
+    "scaleType": "Mass"
+  },
+  {
+    "id": "0x30",
+    "name": "BoneMass",
+    "displayName": "Bone mass",
+    "scaleType": "Mass"
+  },
+  {
+    "id": "0x31",
+    "name": "TotalBodyWater",
+    "displayName": "Total body water (TBW)",
+    "scaleType": "Mass"
+  },
+  {
+    "id": "0x32",
+    "name": "BasisMetabolicRate",
+    "displayName": "Basis metabolic rate (BMR)",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Joule",
+        "unit": "J"
+      }
+    ]
+  },
+  {
+    "id": "0x33",
+    "name": "BodyMassIndex",
+    "displayName": "Body Mass Index (BMI)",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "BMI Index"
+      }
+    ]
+  },
+  {
+    "id": "0x34",
+    "name": "AccelerationXAxis",
+    "displayName": "Acceleration X-axis",
+    "scaleType": "Acceleration"
+  },
+  {
+    "id": "0x35",
+    "name": "AccelerationYAxis",
+    "displayName": "Acceleration Y-axis",
+    "scaleType": "Acceleration"
+  },
+  {
+    "id": "0x36",
+    "name": "AccelerationZAxis",
+    "displayName": "Acceleration Z-axis",
+    "scaleType": "Acceleration"
+  },
+  {
+    "id": "0x37",
+    "name": "SmokeDensity",
+    "displayName": "Smoke density",
+    "scaleType": "Percentage"
+  },
+  {
+    "id": "0x38",
+    "name": "WaterFlow",
+    "displayName": "Water flow",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Liter per hour",
+        "unit": "l/h"
+      }
+    ]
+  },
+  {
+    "id": "0x39",
+    "name": "WaterPressure",
+    "displayName": "Water pressure",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Kilopascal",
+        "unit": "kPa"
+      }
+    ]
+  },
+  {
+    "id": "0x3a",
+    "name": "RFSignalStrength",
+    "displayName": "RF Signal Strength",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "RSSI",
+        "unit": "%"
+      },
+      {
+        "id": "0x01",
+        "label": "dBm",
+        "unit": "dBm"
+      }
+    ]
+  },
+  {
+    "id": "0x3b",
+    "name": "ParticulateMatter10",
+    "displayName": "Particulate Matter 10",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Mole per cubic meter",
+        "unit": "mol/m³"
+      },
+      {
+        "id": "0x01",
+        "label": "Microgram per cubic meter",
+        "unit": "µg/m³"
+      }
+    ]
+  },
+  {
+    "id": "0x3c",
+    "name": "RespiratoryRate",
+    "displayName": "Respiratory rate",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Breaths per minute",
+        "unit": "bpm"
+      }
+    ]
+  },
+  {
+    "id": "0x3d",
+    "name": "RelativeModulationLevel",
+    "displayName": "Relative Modulation level",
+    "scaleType": "Percentage"
+  },
+  {
+    "id": "0x3e",
+    "name": "BoilerWaterTemperature",
+    "displayName": "Boiler water temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x3f",
+    "name": "DommesticHotWaterTemperature",
+    "displayName": "Domestic hot water (DHW) temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x40",
+    "name": "OutsideTemperature",
+    "displayName": "Outside temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x41",
+    "name": "ExhaustTemperature",
+    "displayName": "Exhaust temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x42",
+    "name": "WaterChlorineLevel",
+    "displayName": "Water Chlorine level",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Milligram per liter",
+        "unit": "mg/l"
+      }
+    ]
+  },
+  {
+    "id": "0x43",
+    "name": "WaterAciditiy",
+    "displayName": "Water acidity",
+    "scaleType": "Acidity"
+  },
+  {
+    "id": "0x44",
+    "name": "WaterOxidationReductionPotential",
+    "displayName": "Water Oxidation reduction potential",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Millivolt",
+        "unit": "mV"
+      }
+    ]
+  },
+  {
+    "id": "0x45",
+    "name": "HeartRateLFHFRatio",
+    "displayName": "Heart Rate LF/HF ratio",
+    "scaleType": "Unitless"
+  },
+  {
+    "id": "0x46",
+    "name": "MotionDirection",
+    "displayName": "Motion Direction",
+    "scaleType": "Direction"
+  },
+  {
+    "id": "0x47",
+    "name": "AppliedForceOnTheSensor",
+    "displayName": "Applied force on the sensor",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Newton",
+        "unit": "N"
+      }
+    ]
+  },
+  {
+    "id": "0x48",
+    "name": "ReturnAirTemperature",
+    "displayName": "Return Air temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x49",
+    "name": "SupplyAirTemperature",
+    "displayName": "Supply Air temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x4a",
+    "name": "CondenserCoilTemperature",
+    "displayName": "Condenser Coil temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x4b",
+    "name": "EvaporatorCoilTemperature",
+    "displayName": "Evaporator Coil temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x4c",
+    "name": "LiquidLineTemperature",
+    "displayName": "Liquid Line temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x4d",
+    "name": "DischargeLineTemperature",
+    "displayName": "Discharge Line temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x4e",
+    "name": "SuctionPressure",
+    "displayName": "Suction pressure",
+    "scaleType": "Pressure"
+  },
+  {
+    "id": "0x4f",
+    "name": "DischargePressure",
+    "displayName": "Discharge pressure",
+    "scaleType": "Pressure"
+  },
+  {
+    "id": "0x50",
+    "name": "DefrostTemperature",
+    "displayName": "Defrost temperature",
+    "scaleType": "Temperature"
+  },
+  {
+    "id": "0x51",
+    "name": "Ozone",
+    "displayName": "Ozone (O3)",
+    "scaleType": "Density"
+  },
+  {
+    "id": "0x52",
+    "name": "SulfurDioxide",
+    "displayName": "Sulfur dioxide (SO2)",
+    "scaleType": "Density"
+  },
+  {
+    "id": "0x53",
+    "name": "NitrogenDioxide",
+    "displayName": "Nitrogen dioxide (NO2)",
+    "scaleType": "Density"
+  },
+  {
+    "id": "0x54",
+    "name": "Ammonia",
+    "displayName": "Ammonia (NH3)",
+    "scaleType": "Density"
+  },
+  {
+    "id": "0x55",
+    "name": "Lead",
+    "displayName": "Lead (Pb)",
+    "scaleType": "Density"
+  },
+  {
+    "id": "0x56",
+    "name": "ParticulateMatter1",
+    "displayName": "Particulate Matter 1",
+    "scaleType": "Density"
+  },
+  {
+    "id": "0x57",
+    "name": "PersonCounterEntering",
+    "displayName": "Person counter (entering)",
+    "scaleType": "Unitless"
+  },
+  {
+    "id": "0x58",
+    "name": "PersonCounterExiting",
+    "displayName": "Person counter (exiting)",
+    "scaleType": "Unitless"
+  }
+]

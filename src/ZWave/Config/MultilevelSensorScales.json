@@ -1,0 +1,116 @@
+[
+  {
+    "name": "Percentage",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Percentage value",
+        "unit": "%"
+      }
+    ]
+  },
+  {
+    "name": "Mass",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Kilogram",
+        "unit": "kg"
+      }
+    ]
+  },
+  {
+    "name": "Acceleration",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Meters per square second",
+        "unit": "m/s²"
+      }
+    ]
+  },
+  {
+    "name": "Temperature",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Celsius",
+        "unit": "°C"
+      },
+      {
+        "id": "0x01",
+        "label": "Fahrenheit",
+        "unit": "°F"
+      }
+    ]
+  },
+  {
+    "name": "AirPressure",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Kilopascal",
+        "unit": "kPa"
+      },
+      {
+        "id": "0x01",
+        "label": "Inches of Mercury",
+        "unit": "inHg"
+      }
+    ]
+  },
+  {
+    "name": "Acidity",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Acidity",
+        "unit": "pH"
+      }
+    ]
+  },
+  {
+    "name": "Direction",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Degrees",
+        "unit": "°"
+      }
+    ]
+  },
+  {
+    "name": "Pressure",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Kilopascal",
+        "unit": "kPa"
+      },
+      {
+        "id": "0x01",
+        "label": "Pound per square inch",
+        "unit": "psi"
+      }
+    ]
+  },
+  {
+    "name": "Density",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Microgram per cubic meter",
+        "unit": "µg/m³"
+      }
+    ]
+  },
+  {
+    "name": "Unitless",
+    "scales": [
+      {
+        "id": "0x00",
+        "label": "Unitless"
+      }
+    ]
+  }
+]

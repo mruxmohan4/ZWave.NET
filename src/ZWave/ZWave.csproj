@@ -20,4 +20,13 @@
     <InternalsVisibleTo Include="ZWave.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ConfigType" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Config\MultilevelSensorTypes.json" ConfigType="MultilevelSensorTypes" />
+    <AdditionalFiles Include="Config\MultilevelSensorScales.json" ConfigType="MultilevelSensorScales" />
+  </ItemGroup>
+
 </Project>

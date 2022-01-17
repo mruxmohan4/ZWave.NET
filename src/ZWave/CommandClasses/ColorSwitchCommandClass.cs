@@ -83,7 +83,7 @@ public readonly struct ColorSwitchColorComponentState
 }
 
 [CommandClass(CommandClassId.ColorSwitch)]
-internal class ColorSwitchCommandClass : CommandClass<ColorSwitchCommand>
+public sealed class ColorSwitchCommandClass : CommandClass<ColorSwitchCommand>
 {
     private Dictionary<ColorSwitchColorComponent, ColorSwitchColorComponentState?>? _colorComponents;
 
