@@ -128,7 +128,12 @@ public enum CommandClassId : byte
     RemoteAssociationActivation = 0x7c,
     RemoteAssociationConfiguration = 0x7d,
     AntiTheftUnlock = 0x7e,
+
+    /// <summary>
+    /// The Battery Command Class is used to request and report the battery types, status and levels of a given device.
+    /// </summary>
     Battery = 0x80,
+
     Clock = 0x81,
     Hail = 0x82,
     WakeUp = 0x84,
