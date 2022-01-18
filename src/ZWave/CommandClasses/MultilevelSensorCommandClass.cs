@@ -130,11 +130,11 @@ public sealed class MultilevelSensorCommandClass : CommandClass<MultilevelSensor
         var reportFrame = await AwaitNextReportAsync<MultilevelSensorReportCommand>(
             predicate: frame =>
             {
-                    // Ensure the sensor type matches. If one wasn't provided, we don't know the default sensor type, so just
-                    // return the next report. We can't know for sure whether this is the reply to this command as we don't
-                    // know the device's default sensor type, but this overload is really just here for back-compat and the
-                    // caller should really always provide a sensor type.
-                    var command = new MultilevelSensorReportCommand(frame);
+                // Ensure the sensor type matches. If one wasn't provided, we don't know the default sensor type, so just
+                // return the next report. We can't know for sure whether this is the reply to this command as we don't
+                // know the device's default sensor type, but this overload is really just here for back-compat and the
+                // caller should really always provide a sensor type.
+                var command = new MultilevelSensorReportCommand(frame);
                 return !sensorType.HasValue || command.SensorType == sensorType.Value;
             },
             cancellationToken).ConfigureAwait(false);

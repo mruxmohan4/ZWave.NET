@@ -30,6 +30,10 @@ public enum CommandClassId : byte
     SceneActivation = 0x2B,
     SceneActuatorConfiguration = 0x2c,
     SceneControllerConfiguration = 0x2d,
+
+    /// <summary>
+    /// The Binary Sensor Command Class is used to realize binary sensors, such as movement sensors and door/window sensors.
+    /// </summary>
     BinarySensor = 0x30,
 
     /// <summary>
