@@ -114,6 +114,9 @@ public enum CommandClassId : byte
     /// </summary>
     Notification = 0x71,
 
+    /// <summary>
+    /// The Manufacturer Specific Command Class is used to advertise manufacturer specific and device specific information.
+    /// </summary>
     ManufacturerSpecific = 0x72,
 
     /// <summary>
