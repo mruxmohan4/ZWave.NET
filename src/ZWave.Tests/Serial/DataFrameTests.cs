@@ -50,13 +50,13 @@ public class DataFrameTests
         var frameData = new byte[]
         {
             FrameHeader.SOF,
-            3, // Length
+            6, // Length
             (byte)DataFrameType.REQ,
             (byte)CommandId.SerialApiStarted,
             0x01, // Command parameter 1
             0x02, // Command parameter 2
             0x03, // Command parameter 3
-            0xF6 // Checksum
+            0xF3 // Checksum
         };
 
         var dataFrame = new DataFrame(frameData);
