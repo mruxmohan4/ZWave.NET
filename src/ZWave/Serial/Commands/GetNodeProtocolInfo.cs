@@ -89,7 +89,7 @@ internal struct GetNodeProtocolInfoResponse : ICommand<GetNodeProtocolInfoRespon
                 supportedSpeeds.Add(100000);
             }
 
-            return SupportedSpeeds;
+            return supportedSpeeds;
         }
     }
 
