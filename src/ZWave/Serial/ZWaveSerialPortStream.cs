@@ -12,6 +12,10 @@ namespace ZWave.Serial;
 /// </remarks>
 public sealed class ZWaveSerialPortStream : Stream
 {
+    // INS12350 defines a Z-Wave module as unresponsive after 4 seconds, so retry 4 times with a 1 second delay between each.
+    private const int MaxConnectionRetries = 4;
+    private const int ConnectionDelay = 1000;
+
     private readonly ILogger _logger;
 
     private readonly SerialPort _port;
@@ -31,18 +35,90 @@ public sealed class ZWaveSerialPortStream : Stream
             parity: Parity.None,
             dataBits: 8,
             stopBits: StopBits.One);
-        Open();
+        EnsurePortOpened(isReopen: false);
     }
 
-    public bool IsOpen => _port.IsOpen;
-
-    public void Open()
+    private void EnsurePortOpened(bool isReopen)
     {
-        _port.Open();
+        if (_port.IsOpen)
+        {
+            return;
+        }
+
+        int retryCount = 0;
+        while (true)
+        {
+            try
+            {
+                _port.Open();
+                break;
+            }
+            catch (InvalidOperationException)
+            {
+                // Another thread may have reopened the port already. If so, just bail
+                if (_port.IsOpen)
+                {
+                    return;
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                // If the port goes away momentarily, for example during a soft reset, retry opening the port a few times
+                if (isReopen && retryCount <= MaxConnectionRetries)
+                {
+                    retryCount++;
+                    Thread.Sleep(ConnectionDelay);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
         _port.DiscardInBuffer();
         _port.DiscardOutBuffer();
 
-        _logger.LogSerialApiPortOpened(_port.PortName);
+        if (isReopen)
+        {
+            _logger.LogSerialApiPortReopened(_port.PortName);
+        }
+        else
+        {
+            _logger.LogSerialApiPortOpened(_port.PortName);
+        }
+    }
+
+    private void PerformWithRetries(Action action)
+    {
+        EnsurePortOpened(isReopen: true);
+        try
+        {
+            action();
+        }
+        catch (IOException)
+        {
+            EnsurePortOpened(isReopen: true);
+            action();
+        }
+    }
+
+    private T PerformWithRetries<T>(Func<T> func)
+    {
+        EnsurePortOpened(isReopen: true);
+        try
+        {
+            return func();
+        }
+        catch (IOException)
+        {
+            EnsurePortOpened(isReopen: true);
+            return func();
+        }
     }
 
     /*
@@ -67,80 +143,104 @@ public sealed class ZWaveSerialPortStream : Stream
      * Below here are "passthrough" implementations of all abstract and virtual members to the serial port's base stream
      */
 
-    public override bool CanRead => _port.BaseStream.CanRead;
+    public override bool CanRead => PerformWithRetries(() => _port.BaseStream.CanRead);
 
-    public override bool CanSeek => _port.BaseStream.CanSeek;
+    public override bool CanSeek => PerformWithRetries(() => _port.BaseStream.CanSeek);
 
-    public override bool CanWrite => _port.BaseStream.CanWrite;
+    public override bool CanWrite => PerformWithRetries(() => _port.BaseStream.CanWrite);
 
-    public override bool CanTimeout => _port.BaseStream.CanTimeout;
+    public override bool CanTimeout => PerformWithRetries(() => _port.BaseStream.CanTimeout);
 
-    public override long Length => _port.BaseStream.Length;
+    public override long Length => PerformWithRetries(() => _port.BaseStream.Length);
 
     public override long Position
     {
-        get => _port.BaseStream.Position;
-        set => _port.BaseStream.Position = value;
+        get => PerformWithRetries(() => _port.BaseStream.Position);
+        set => PerformWithRetries(() => _port.BaseStream.Position = value);
     }
 
     public override int ReadTimeout
     {
-        get => _port.BaseStream.ReadTimeout;
-        set => _port.BaseStream.ReadTimeout = value;
+        get => PerformWithRetries(() => _port.BaseStream.ReadTimeout);
+        set => PerformWithRetries(() => _port.BaseStream.ReadTimeout = value);
     }
 
     public override int WriteTimeout
     {
-        get => _port.BaseStream.WriteTimeout;
-        set => _port.BaseStream.WriteTimeout = value;
+        get => PerformWithRetries(() => _port.BaseStream.WriteTimeout);
+        set => PerformWithRetries(() => _port.BaseStream.WriteTimeout = value);
     }
 
     public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
-        => _port.BaseStream.BeginRead(buffer, offset, count, callback, state);
+        => PerformWithRetries(() => _port.BaseStream.BeginRead(buffer, offset, count, callback, state));
 
     public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
-        => _port.BaseStream.BeginWrite(buffer, offset, count, callback, state);
+        => PerformWithRetries(() => _port.BaseStream.BeginWrite(buffer, offset, count, callback, state));
 
     public override void CopyTo(Stream destination, int bufferSize)
-        => _port.BaseStream.CopyTo(destination, bufferSize);
+        => PerformWithRetries(() => _port.BaseStream.CopyTo(destination, bufferSize));
 
     public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
-        => _port.BaseStream.CopyToAsync(destination, bufferSize, cancellationToken);
+        => PerformWithRetries(() => _port.BaseStream.CopyToAsync(destination, bufferSize, cancellationToken));
 
-    public override int EndRead(IAsyncResult asyncResult) => _port.BaseStream.EndRead(asyncResult);
+    public override int EndRead(IAsyncResult asyncResult) => PerformWithRetries(() => _port.BaseStream.EndRead(asyncResult));
 
-    public override void EndWrite(IAsyncResult asyncResult) => _port.BaseStream.EndWrite(asyncResult);
+    public override void EndWrite(IAsyncResult asyncResult) => PerformWithRetries(() => _port.BaseStream.EndWrite(asyncResult));
 
-    public override void Flush() => _port.BaseStream.Flush();
+    public override void Flush() => PerformWithRetries(() => _port.BaseStream.Flush());
 
     public override Task FlushAsync(CancellationToken cancellationToken)
-        => _port.BaseStream.FlushAsync(cancellationToken);
+        => PerformWithRetries(() => _port.BaseStream.FlushAsync(cancellationToken));
 
-    public override int Read(byte[] buffer, int offset, int count) => _port.BaseStream.Read(buffer, offset, count);
+    public override int Read(byte[] buffer, int offset, int count) => PerformWithRetries(() => _port.BaseStream.Read(buffer, offset, count));
 
-    public override int Read(Span<byte> buffer) => _port.BaseStream.Read(buffer);
+    public override int Read(Span<byte> buffer)
+    {
+        EnsurePortOpened(isReopen: true);
+        try
+        {
+            return _port.BaseStream.Read(buffer);
+        }
+        catch (IOException)
+        {
+            EnsurePortOpened(isReopen: true);
+            return _port.BaseStream.Read(buffer);
+        }
+    }
 
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        => _port.BaseStream.ReadAsync(buffer, offset, count, cancellationToken);
+        => PerformWithRetries(() => _port.BaseStream.ReadAsync(buffer, offset, count, cancellationToken));
 
     public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-        => _port.BaseStream.ReadAsync(buffer, cancellationToken);
+        => PerformWithRetries(() => _port.BaseStream.ReadAsync(buffer, cancellationToken));
 
-    public override int ReadByte() => _port.BaseStream.ReadByte();
+    public override int ReadByte() => PerformWithRetries(() => _port.BaseStream.ReadByte());
 
-    public override long Seek(long offset, SeekOrigin origin) => _port.BaseStream.Seek(offset, origin);
+    public override long Seek(long offset, SeekOrigin origin) => PerformWithRetries(() => _port.BaseStream.Seek(offset, origin));
 
-    public override void SetLength(long value) => _port.BaseStream.SetLength(value);
+    public override void SetLength(long value) => PerformWithRetries(() => _port.BaseStream.SetLength(value));
 
-    public override void Write(byte[] buffer, int offset, int count) => _port.BaseStream.Write(buffer, offset, count);
+    public override void Write(byte[] buffer, int offset, int count) => PerformWithRetries(() => _port.BaseStream.Write(buffer, offset, count));
 
-    public override void Write(ReadOnlySpan<byte> buffer) => _port.BaseStream.Write(buffer);
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        EnsurePortOpened(isReopen: true);
+        try
+        {
+            _port.BaseStream.Write(buffer);
+        }
+        catch (IOException)
+        {
+            EnsurePortOpened(isReopen: true);
+            _port.BaseStream.Write(buffer);
+        }
+    }
 
     public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        => _port.BaseStream.WriteAsync(buffer, offset, count, cancellationToken);
+        => PerformWithRetries(() => _port.BaseStream.WriteAsync(buffer, offset, count, cancellationToken));
 
     public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
-        => _port.BaseStream.WriteAsync(buffer, cancellationToken);
+        => PerformWithRetries(() => _port.BaseStream.WriteAsync(buffer, cancellationToken));
 
-    public override void WriteByte(byte value) => _port.BaseStream.WriteByte(value);
+    public override void WriteByte(byte value) => PerformWithRetries(() => _port.BaseStream.WriteByte(value));
 }

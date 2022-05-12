@@ -52,29 +52,37 @@ internal sealed partial class ZWaveFrameListener : IDisposable
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            ReadResult readResult = await reader.ReadAsync(cancellationToken);
-            ReadOnlySequence<byte> buffer = readResult.Buffer;
-
-            if (readResult.IsCanceled)
+            try
             {
-                break;
+                ReadResult readResult = await reader.ReadAsync(cancellationToken);
+                ReadOnlySequence<byte> buffer = readResult.Buffer;
+
+                if (readResult.IsCanceled)
+                {
+                    break;
+                }
+
+                while (FrameParser.TryParseData(logger, ref buffer, out Frame frame))
+                {
+                    // TODO: Should we be invoking user code directly like this?
+                    // It blocks parsing new frames. How should exceptions be handled?
+                    // Maybe a better approach would be to use a Pipeline the caller can consume?
+                    frameHandler(frame);
+                }
+
+                // Tell the PipeReader how much of the buffer has been consumed.
+                reader.AdvanceTo(buffer.Start, buffer.End);
+
+                // Stop reading if there's no more data coming.
+                if (readResult.IsCompleted)
+                {
+                    break;
+                }
             }
-
-            while (FrameParser.TryParseData(logger, ref buffer, out Frame frame))
+            catch (OperationCanceledException)
             {
-                // TODO: Should we be invoking user code directly like this?
-                // It blocks parsing new frames. How should exceptions be handled?
-                // Maybe a better approach would be to use a Pipeline the caller can consume?
-                frameHandler(frame);
-            }
-
-            // Tell the PipeReader how much of the buffer has been consumed.
-            reader.AdvanceTo(buffer.Start, buffer.End);
-
-            // Stop reading if there's no more data coming.
-            if (readResult.IsCompleted)
-            {
-                break;
+                // Swallow. If a specific read is cancelled, just keep retrying.
+                // TODO: Log
             }
         }
     }

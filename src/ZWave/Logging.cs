@@ -21,6 +21,12 @@ internal static partial class Logging
     public static partial void LogSerialApiPortClosed(this ILogger logger, string portName);
 
     [LoggerMessage(
+        EventId = 102,
+        Level = LogLevel.Trace,
+        Message = "ZWave Serial port `{portName}` re-opened")]
+    public static partial void LogSerialApiPortReopened(this ILogger logger, string portName);
+
+    [LoggerMessage(
         EventId = 103,
         Level = LogLevel.Trace,
         Message = "Skipped {numBytes} bytes of invalid data from the Serial port")]

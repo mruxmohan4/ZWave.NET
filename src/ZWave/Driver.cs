@@ -122,12 +122,6 @@ public sealed class Driver : IDisposable
         catch (TimeoutException)
         {
             // If we don't get the signal, assume the soft reset was successful after the wait time.
-
-            // Some controllers disconnect after a soft reset. If that's the case, re-open.
-            if (!_stream.IsOpen)
-            {
-                _stream.Open();
-            }
         }
         finally
         {
