@@ -38,7 +38,7 @@ internal readonly struct DataFrame
         data[1] = (byte)(data.Length - 2); // Frame length does not include the SOF or Checksum
         data[2] = (byte)type;
         data[3] = (byte)commandId;
-        commandParameters.CopyTo(data[4..]);
+        commandParameters.CopyTo(data.AsSpan()[4..]);
         data[data.Length - 1] = CalculateChecksum(data);
         return new DataFrame(data);
     }

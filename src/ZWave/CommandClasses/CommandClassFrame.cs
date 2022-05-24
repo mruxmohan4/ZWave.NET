@@ -28,7 +28,7 @@ public readonly struct CommandClassFrame
         byte[] data = new byte[2 + commandParameters.Length];
         data[0] = (byte)commandClassId;
         data[1] = commandId;
-        commandParameters.CopyTo(data[2..]);
+        commandParameters.CopyTo(data.AsSpan()[2..]);
         return new CommandClassFrame(data);
     }
 }
