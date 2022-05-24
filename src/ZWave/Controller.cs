@@ -57,6 +57,8 @@ public sealed class Controller
     {
         try
         {
+            _logger.LogControllerIdentifying();
+
             var memoryGetIdRequest = MemoryGetIdRequest.Create();
             MemoryGetIdResponse memoryGetIdResponse = await _driver.SendCommandAsync<MemoryGetIdRequest, MemoryGetIdResponse>(
                 memoryGetIdRequest,
