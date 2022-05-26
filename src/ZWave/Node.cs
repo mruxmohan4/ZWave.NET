@@ -90,13 +90,13 @@ public sealed class Node
     /// </remarks>
     internal async Task InterviewAsync(CancellationToken cancellationToken)
     {
-        // Cancel any preview interview
+        // Cancel any previous interview
         if (_interviewCancellationTokenSource != null)
         {
             _interviewCancellationTokenSource.Cancel();
         }
 
-        // Wait for any preview interview to stop
+        // Wait for any previous interview to stop
         if (_interviewTask != null)
         {
             await _interviewTask;

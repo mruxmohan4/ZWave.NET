@@ -65,8 +65,50 @@ internal static partial class Logging
     [LoggerMessage(
         EventId = 109,
         Level = LogLevel.Trace,
+        Message = "Received frame transmission reply unexpectedly: {frame}")]
+    public static partial void LogSerialApiUnexpectedFrame(this ILogger logger, Frame frame);
+
+    [LoggerMessage(
+        EventId = 110,
+        Level = LogLevel.Trace,
+        Message = "Received Serial API frame with unknown type `{frameType}`")]
+    public static partial void LogSerialApiFrameUnknownType(this ILogger logger, FrameType frameType);
+
+    [LoggerMessage(
+        EventId = 111,
+        Level = LogLevel.Trace,
         Message = "Received Serial API data frame with unknown type `{dataFrameType}`")]
     public static partial void LogSerialApiDataFrameUnknownType(this ILogger logger, DataFrameType dataFrameType);
+
+    [LoggerMessage(
+        EventId = 112,
+        Level = LogLevel.Trace,
+        Message = "Serial API read was cancelled")]
+    public static partial void LogSerialApiReadCancellation(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 113,
+        Level = LogLevel.Warning,
+        Message = "Serial API read exception")]
+    public static partial void LogSerialApiReadException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 114,
+        Level = LogLevel.Warning,
+        Message = "Serial API write exception")]
+    public static partial void LogSerialApiWriteException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 115,
+        Level = LogLevel.Warning,
+        Message = "Serial API frame transmission did not receive an ACK before the timeout period")]
+    public static partial void LogSerialApiFrameDeliveryAckTimeout(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 116,
+        Level = LogLevel.Warning,
+        Message = "Serial API frame transmission failed (attempt #{attempt})")]
+    public static partial void LogSerialApiFrameTransmissionRetry(this ILogger logger, int attempt);
 
     /* Driver: 200-299 */
 

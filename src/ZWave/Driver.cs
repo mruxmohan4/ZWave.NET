@@ -1,23 +1,24 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 using ZWave.CommandClasses;
 using ZWave.Serial;
 using ZWave.Serial.Commands;
 
 namespace ZWave;
 
-public sealed class Driver : IDisposable
+public sealed class Driver : IAsyncDisposable
 {
-    private record struct AwaitedCommand(CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
+    private record struct AwaitedFrameResponse(CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
 
     private record struct UnresolvedCallbackKey(CommandId CommandId, byte SessionId);
 
     private readonly ILogger _logger;
 
-    private readonly ZWaveSerialPortStream _stream;
+    private readonly ChannelWriter<DataFrameTransmission> _dataFrameSendChannelWriter;
 
-    private readonly ZWaveFrameListener _frameListener;
+    private readonly ZWaveSerialPortCoordinator _serialPortCoordinator;
 
-    private readonly CommandScheduler _commandScheduler;
+    private readonly Task _frameProcessingTask;
 
     // Lock anything related to session ids or callbacks
     private readonly object _callbackLock = new object();
@@ -26,18 +27,44 @@ public sealed class Driver : IDisposable
 
     private byte _lastSessionId = 0;
 
-    // Note that only one request -> response session can happen at a time.
-    private AwaitedCommand? _awaitedCommandResponse;
+    // INS12350 6.5.2 due to the simple nature of the simple acknowledge mechanism, only one REQ->RES session is allowed
+    private AwaitedFrameResponse? _awaitedFrameResponse;
 
     // Currenty this is the only non-callback request we wait on. If there are more, this should become a pattern.
     private TaskCompletionSource<SerialApiStartedRequest>? _serialApiStartedTaskCompletionSource;
 
-    private Driver(ILogger logger, ZWaveSerialPortStream stream)
+    private Driver(ILogger logger, string portName)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _stream = stream ?? throw new ArgumentNullException(nameof(stream));
-        _frameListener = new ZWaveFrameListener(logger, stream, ProcessFrame);
-        _commandScheduler = new CommandScheduler(logger, stream, this);
+
+        if (string.IsNullOrEmpty(portName))
+        {
+            throw new ArgumentNullException(nameof(portName));
+        }
+
+        // We can assume the single reader/writer based on the implementation of the serial port coordinator and the single frame processing task
+        Channel<DataFrameTransmission> dataFrameSendChannel = Channel.CreateUnbounded<DataFrameTransmission>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+
+        // We can assume a single reader based on the implementation of the serial port coordinator. The writer is the driver, which may be called by multiple callers.
+        Channel<DataFrame> dataFrameReceiveChannel = Channel.CreateUnbounded<DataFrame>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
+
+        _serialPortCoordinator = new ZWaveSerialPortCoordinator(logger, portName, dataFrameSendChannel.Reader, dataFrameReceiveChannel.Writer);
+
+        _dataFrameSendChannelWriter = dataFrameSendChannel.Writer;
+
+        // Start a task to asynchronously handle any data frames recieved.
+        // Note: Since we're starting out own task, we don't need to ConfigureAwait anywhere dowstream.
+        // TODO: Should we consider parallelism here? Perhaps configurable? If so, dataFrameReceiveChannel options needs adjustment
+        _frameProcessingTask = Task.Run(
+            async () =>
+            {
+                // Intentionally not passing a cancellation token as the serial port coordinator is responsible to completing the channel.
+                await foreach (DataFrame frame in dataFrameReceiveChannel.Reader.ReadAllAsync())
+                {
+                    ProcessDataFrame(frame);
+                }
+            });
+
         Controller = new Controller(logger, this);
     }
 
@@ -48,138 +75,29 @@ public sealed class Driver : IDisposable
         string portName,
         CancellationToken cancellationToken)
     {
-        var stream = new ZWaveSerialPortStream(logger, portName);
-        var driver = new Driver(logger, stream);
-        await driver.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
+        var driver = new Driver(logger, portName);
+        await driver.InitializeAsync(cancellationToken).ConfigureAwait(false);
         return driver;
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _frameListener.Dispose();
-        _stream.Dispose();
-    }
+        _dataFrameSendChannelWriter.Complete();
 
-    private async Task InitializeAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogDriverInitializing();
+        await _serialPortCoordinator.DisposeAsync();
 
-        // Perform initialization sequence (INS12350 6.1)
-        await _stream.WriteAsync(Frame.NAK.Data, cancellationToken).ConfigureAwait(false);
-
-        // TODO: Add retry logic.
-        try
-        {
-            await SoftResetAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            throw new ZWaveException(ZWaveErrorCode.DriverInitializationFailed, "Soft reset failed", ex);
-        }
-
-        await Controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
-
-        // Begin interviewing the nodes, starting with and waiting for the controller node
-        Node controllerNode = Controller.Nodes[Controller.NodeId];
-        await controllerNode.InterviewAsync(cancellationToken).ConfigureAwait(false);
-        foreach (KeyValuePair<byte, Node> pair in Controller.Nodes)
-        {
-            Node node = pair.Value;
-            if (node != controllerNode)
-            {
-                // This is intentionally fire-and-forget
-                _ = node.InterviewAsync(cancellationToken);
-            }
-        }
-
-        _logger.LogDriverInitialized();
-    }
-
-    public async Task SoftResetAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogSoftReset();
-        var softResetRequest = SoftResetRequest.Create();
-        await SendCommandAsync(softResetRequest, cancellationToken)
-            .ConfigureAwait(false);
-
-        // TODO: Pause sending any new commands until we're sure everything is working again.
-        _serialApiStartedTaskCompletionSource = new TaskCompletionSource<SerialApiStartedRequest>();
-        try
-        {
-            // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
-            TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
-
-            // TODO: this causes exceptions in the listener. The Serial Port management needs to be done better.
-            SerialApiStartedRequest serialApiStartedRequest = await _serialApiStartedTaskCompletionSource.Task
-                .WaitAsync(serialApiStartedWaitTime, cancellationToken)
-                .ConfigureAwait(false);
-
-            // TODO: Log wakeup reason and maybe other things
-            // TODO: Do something with the response
-            return;
-        }
-        catch (TimeoutException)
-        {
-            // If we don't get the signal, assume the soft reset was successful after the wait time.
-        }
-        finally
-        {
-            _serialApiStartedTaskCompletionSource = null;
-        }
-    }
-
-    private void ProcessFrame(Frame frame)
-    {
-        switch (frame.Type)
-        {
-            case FrameType.ACK:
-            case FrameType.NAK:
-            case FrameType.CAN:
-            {
-                _commandScheduler.NotifyCommandDelivered(frame.Type);
-                break;
-            }
-            case FrameType.Data:
-            {
-                DataFrame dataFrame = frame.ToDataFrame();
-                ProcessDataFrame(dataFrame);
-                break;
-            }
-            default:
-            {
-                // Ignore anything we don't recognize.
-                // TODO: Log
-                break;
-            }
-        }
+        // Allow the processing task to drain. Disposal of the serial port coordinator should complete the channel.
+        await _frameProcessingTask;
     }
 
     private void ProcessDataFrame(DataFrame frame)
     {
-        // From INS12350 5.4.6
-        // Data frame MUST be considered invalid if it is received with an invalid checksum.
-        // A host or Z-Wave chip MUST return a NAK frame in response to an invalid Data frame.
-        if (!frame.IsChecksumValid())
-        {
-            _logger.LogSerialApiInvalidDataFrame(frame);
-
-            SendFrame(Frame.NAK);
-
-            // From INS12350 6.4.2
-            // If a host application detects an invalid checksum three times in a row when receiving data frames, the 
-            // host application SHOULD invoke a hard reset of the device. If a hard reset line is not available, a soft 
-            // reset indication SHOULD be issued for the device.
-            // TODO
-        }
-
         switch (frame.Type)
         {
             case DataFrameType.REQ:
             {
-                // Immediately send the ACK
-                SendFrame(Frame.ACK);
-
                 // Try handling unsolicited requests first, then check if it's a callback we're waiting for.
                 switch (frame.CommandId)
                 {
@@ -235,22 +153,24 @@ public sealed class Driver : IDisposable
             }
             case DataFrameType.RES:
             {
-                if (_awaitedCommandResponse == null)
+                if (_awaitedFrameResponse == null)
                 {
                     // We weren't expecting a response. Just drop it
                     // TODO: Log
                     return;
                 }
 
-                if (_awaitedCommandResponse.Value.CommandId != frame.CommandId)
+                if (_awaitedFrameResponse.Value.CommandId != frame.CommandId)
                 {
                     // We weren't expecting this response. Just drop it
                     // TODO: Log
                     return;
                 }
 
-                _awaitedCommandResponse.Value.TaskCompletionSource.SetResult(frame);
-                _awaitedCommandResponse = null;
+                // Ensure we null out the field before setting the result to avoid race conditions.
+                var tcs = _awaitedFrameResponse.Value.TaskCompletionSource;
+                _awaitedFrameResponse = null;
+                tcs.SetResult(frame);
                 break;
             }
             default:
@@ -260,6 +180,69 @@ public sealed class Driver : IDisposable
                 _logger.LogSerialApiDataFrameUnknownType(frame.Type);
                 break;
             }
+        }
+    }
+
+    private async Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogDriverInitializing();
+
+        // Perform initialization sequence (INS12350 6.1). Note: ZWaveSerialPortCoordinator sends the NAK upon opening the port.
+        try
+        {
+            await SoftResetAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new ZWaveException(ZWaveErrorCode.DriverInitializationFailed, "Soft reset failed", ex);
+        }
+
+        await Controller.IdentifyAsync(cancellationToken).ConfigureAwait(false);
+
+        // Begin interviewing the nodes, starting with and waiting for the controller node
+        Node controllerNode = Controller.Nodes[Controller.NodeId];
+        await controllerNode.InterviewAsync(cancellationToken).ConfigureAwait(false);
+        foreach (KeyValuePair<byte, Node> pair in Controller.Nodes)
+        {
+            Node node = pair.Value;
+            if (node != controllerNode)
+            {
+                // This is intentionally fire-and-forget
+                _ = node.InterviewAsync(cancellationToken);
+            }
+        }
+
+        _logger.LogDriverInitialized();
+    }
+
+    public async Task SoftResetAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogSoftReset();
+        var softResetRequest = SoftResetRequest.Create();
+        await SendCommandAsync(softResetRequest, cancellationToken)
+            .ConfigureAwait(false);
+
+        _serialApiStartedTaskCompletionSource = new TaskCompletionSource<SerialApiStartedRequest>();
+        try
+        {
+            // Wait for 1.5s per spec, unless we get an affirmative signal back that the serial API has started.
+            TimeSpan serialApiStartedWaitTime = TimeSpan.FromMilliseconds(1500);
+
+            SerialApiStartedRequest serialApiStartedRequest = await _serialApiStartedTaskCompletionSource.Task
+                .WaitAsync(serialApiStartedWaitTime, cancellationToken)
+                .ConfigureAwait(false);
+
+            // TODO: Log wakeup reason and maybe other things
+            // TODO: Do something with the response
+            return;
+        }
+        catch (TimeoutException)
+        {
+            // If we don't get the signal, assume the soft reset was successful after the wait time.
+        }
+        finally
+        {
+            _serialApiStartedTaskCompletionSource = null;
         }
     }
 
@@ -292,13 +275,6 @@ public sealed class Driver : IDisposable
             _lastSessionId = nextSessionId;
             return nextSessionId;
         }
-    }
-
-    internal Task<DataFrame> WaitForResponseAsync(CommandId commandId)
-    {
-        var tcs = new TaskCompletionSource<DataFrame>();
-        _awaitedCommandResponse = new AwaitedCommand(commandId, tcs);
-        return tcs.Task;
     }
 
     // TODO: This name is terrible. Consider doing more type magic for req/res vs callback flow
@@ -342,11 +318,13 @@ public sealed class Driver : IDisposable
         where TRequest : struct, ICommand<TRequest>
         where TResponse : struct, ICommand<TResponse>
     {
-        DataFrame responseFrame = await _commandScheduler.SendCommandAsync(
-            request.Frame,
-            expectResponse: true)
-            .WaitAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var tcs = new TaskCompletionSource<DataFrame>();
+        _awaitedFrameResponse = new AwaitedFrameResponse(request.Frame.CommandId, tcs);
+
+        await SendFrameAsync(request.Frame, cancellationToken).ConfigureAwait(false);
+
+        DataFrame responseFrame = await tcs.Task.WaitAsync(cancellationToken);
+
         return TResponse.Create(responseFrame);
     }
 
@@ -354,11 +332,7 @@ public sealed class Driver : IDisposable
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : struct, ICommand<TRequest>
-    {
-        await _commandScheduler.SendCommandAsync(request.Frame)
-            .WaitAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
+        => await SendFrameAsync(request.Frame, cancellationToken).ConfigureAwait(false);
 
     internal async Task SendCommandAsync<TCommand>(
         TCommand request,
@@ -399,11 +373,14 @@ public sealed class Driver : IDisposable
         });
     }
 
-    private void SendFrame(Frame frame)
+    private async Task SendFrameAsync(DataFrame request, CancellationToken cancellationToken)
     {
-        // TODO: Make async? Frames are pretty small, so maybe not?
-        // TODO: Does this need to be coordinated with CommandScheduler?
-        _logger.LogSerialApiFrameSent(frame);
-        _stream.Write(frame.Data.Span);
+        var transmissionComplete = new TaskCompletionSource();
+        var transmission = new DataFrameTransmission(request, transmissionComplete);
+
+        await _dataFrameSendChannelWriter.WriteAsync(transmission, cancellationToken).ConfigureAwait(false);
+
+        // Wait until the frame is sent.
+        await transmissionComplete.Task;
     }
 }
