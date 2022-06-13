@@ -61,7 +61,14 @@ public sealed class Driver : IAsyncDisposable
                 // Intentionally not passing a cancellation token as the serial port coordinator is responsible to completing the channel.
                 await foreach (DataFrame frame in dataFrameReceiveChannel.Reader.ReadAllAsync())
                 {
-                    ProcessDataFrame(frame);
+                    try
+                    {
+                        ProcessDataFrame(frame);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDataFrameProcessingException(ex);
+                    }
                 }
             });
 
@@ -103,10 +110,14 @@ public sealed class Driver : IAsyncDisposable
                 {
                     case CommandId.SerialApiStarted:
                     {
-                        // Unblock the task. TODO: Log if null (we got it unexpectedly)
+                        // Unblock the task.
                         if (_serialApiStartedTaskCompletionSource != null)
                         {
                             _serialApiStartedTaskCompletionSource.SetResult(SerialApiStartedRequest.Create(frame));
+                        }
+                        else
+                        {
+                            _logger.LogUnexpectedSerialApiStarted();
                         }
 
                         break;
@@ -116,8 +127,14 @@ public sealed class Driver : IAsyncDisposable
                         var applicationUpdateRequest = ApplicationUpdateRequest.Create(frame);
                         if (applicationUpdateRequest.Event == ApplicationUpdateEvent.NodeInfoReceived)
                         {
-                            var node = Controller.Nodes[applicationUpdateRequest.Generic.NodeId];
-                            node.NotifyNodeInfoReceived(applicationUpdateRequest);
+                            if (Controller.Nodes.TryGetValue(applicationUpdateRequest.Generic.NodeId, out Node? node))
+                            {
+                                node.NotifyNodeInfoReceived(applicationUpdateRequest);
+                            }
+                            else
+                            {
+                                _logger.LogUnknownNodeId(applicationUpdateRequest.Generic.NodeId);
+                            }
                         }
 
                         break;
@@ -125,9 +142,16 @@ public sealed class Driver : IAsyncDisposable
                     case CommandId.ApplicationCommandHandler:
                     {
                         var applicationCommandHandler = ApplicationCommandHandler.Create(frame);
-                        var node = Controller.Nodes[applicationCommandHandler.NodeId];
-                        var commandClassFrame = new CommandClassFrame(applicationCommandHandler.Payload);
-                        node.ProcessCommand(commandClassFrame);
+                        if (Controller.Nodes.TryGetValue(applicationCommandHandler.NodeId, out Node? node))
+                        {
+                            var commandClassFrame = new CommandClassFrame(applicationCommandHandler.Payload);
+                            node.ProcessCommand(commandClassFrame);
+                        }
+                        else
+                        {
+                            _logger.LogUnknownNodeId(applicationCommandHandler.NodeId);
+                        }
+
                         break;
                     }
                     default:
@@ -156,14 +180,14 @@ public sealed class Driver : IAsyncDisposable
                 if (_awaitedFrameResponse == null)
                 {
                     // We weren't expecting a response. Just drop it
-                    // TODO: Log
+                    _logger.LogUnexpectedResponseFrame(frame);
                     return;
                 }
 
                 if (_awaitedFrameResponse.Value.CommandId != frame.CommandId)
                 {
                     // We weren't expecting this response. Just drop it
-                    // TODO: Log
+                    _logger.LogUnexpectedCommandIdResponseFrame(_awaitedFrameResponse.Value.CommandId, frame);
                     return;
                 }
 

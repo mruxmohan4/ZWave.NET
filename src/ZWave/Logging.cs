@@ -209,4 +209,34 @@ internal static partial class Logging
         byte chipType,
         byte chipVersion,
         string nodeIds);
+
+    [LoggerMessage(
+        EventId = 212,
+        Level = LogLevel.Error,
+        Message = "Data frame processing exception")]
+    public static partial void LogDataFrameProcessingException(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 213,
+        Level = LogLevel.Warning,
+        Message = "Unexpected SerialApiStarted command")]
+        public static partial void LogUnexpectedSerialApiStarted(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 214,
+        Level = LogLevel.Warning,
+        Message = "Unsolicited request for unknown node id {nodeId}")]
+    public static partial void LogUnknownNodeId(this ILogger logger, int nodeId);
+
+    [LoggerMessage(
+        EventId = 215,
+        Level = LogLevel.Warning,
+        Message = "Unexpected response frame: {frame}")]
+    public static partial void LogUnexpectedResponseFrame(this ILogger logger, DataFrame frame);
+
+    [LoggerMessage(
+        EventId = 216,
+        Level = LogLevel.Warning,
+        Message = "Unexpected command id in response frame. Expected command id: {expectedCommandId}. Recieved frame: {frame}")]
+    public static partial void LogUnexpectedCommandIdResponseFrame(this ILogger logger, CommandId expectedCommandId, DataFrame frame);
 }
