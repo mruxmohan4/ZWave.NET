@@ -27,7 +27,7 @@ public enum NotificationType : byte
     RequestPendingNotification = 0xff,
 }
 
-public enum NotificationCommand
+public enum NotificationCommand : byte
 {
     /// <summary>
     /// Request the supported Notifications for a specified Notification Type.
