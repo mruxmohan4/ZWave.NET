@@ -27,7 +27,9 @@ public sealed class Driver : IAsyncDisposable
 
     private byte _lastSessionId = 0;
 
-    // INS12350 6.5.2 due to the simple nature of the simple acknowledge mechanism, only one REQ->RES session is allowed
+    // Lock access to _awaitedFrameResponse
+    private readonly object _requestResponseFrameFlowLock = new object();
+
     private AwaitedFrameResponse? _awaitedFrameResponse;
 
     // Currenty this is the only non-callback request we wait on. If there are more, this should become a pattern.
@@ -177,24 +179,31 @@ public sealed class Driver : IAsyncDisposable
             }
             case DataFrameType.RES:
             {
-                if (_awaitedFrameResponse == null)
+                // Assign to a local and null out to immediately release the lock safely
+                AwaitedFrameResponse? awaitedFrameResponse;
+                lock (_requestResponseFrameFlowLock)
+                {
+                    awaitedFrameResponse = _awaitedFrameResponse;
+                    _awaitedFrameResponse = null;
+                }
+
+                if (awaitedFrameResponse == null)
                 {
                     // We weren't expecting a response. Just drop it
                     _logger.LogUnexpectedResponseFrame(frame);
                     return;
                 }
 
-                if (_awaitedFrameResponse.Value.CommandId != frame.CommandId)
+                if (awaitedFrameResponse.Value.CommandId != frame.CommandId)
                 {
                     // We weren't expecting this response. Just drop it
-                    _logger.LogUnexpectedCommandIdResponseFrame(_awaitedFrameResponse.Value.CommandId, frame);
+                    _logger.LogUnexpectedCommandIdResponseFrame(awaitedFrameResponse.Value.CommandId, frame);
                     return;
                 }
 
-                // Ensure we null out the field before setting the result to avoid race conditions.
-                var tcs = _awaitedFrameResponse.Value.TaskCompletionSource;
-                _awaitedFrameResponse = null;
+                var tcs = awaitedFrameResponse.Value.TaskCompletionSource;
                 tcs.SetResult(frame);
+
                 break;
             }
             default:
@@ -343,7 +352,28 @@ public sealed class Driver : IAsyncDisposable
         where TResponse : struct, ICommand<TResponse>
     {
         var tcs = new TaskCompletionSource<DataFrame>();
-        _awaitedFrameResponse = new AwaitedFrameResponse(request.Frame.CommandId, tcs);
+
+        // INS12350 6.5.2 due to the simple nature of the simple acknowledge mechanism, only one REQ->RES session is allowed.
+        // Based on this, if there is an existing request which requires an immediate response, this new one needs to wait until
+        // the previous one finishes.
+        while (true)
+        {
+            TaskCompletionSource<DataFrame> existingFrameFlowTcs;
+            lock (_requestResponseFrameFlowLock)
+            {
+                if (_awaitedFrameResponse == null)
+                {
+                    _awaitedFrameResponse = new AwaitedFrameResponse(request.Frame.CommandId, tcs);
+                    break;
+                }
+                else
+                {
+                    existingFrameFlowTcs = _awaitedFrameResponse.Value.TaskCompletionSource;
+                }
+            }
+
+            await existingFrameFlowTcs.Task;
+        }
 
         await SendFrameAsync(request.Frame, cancellationToken).ConfigureAwait(false);
 

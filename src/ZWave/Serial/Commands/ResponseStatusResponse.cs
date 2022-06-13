@@ -9,7 +9,7 @@ internal struct ResponseStatusResponse : ICommand<ResponseStatusResponse>
 
     public static DataFrameType Type => DataFrameType.RES;
 
-    public static CommandId CommandId => CommandId.GetControllerCapabilities;
+    public static CommandId CommandId => throw new InvalidOperationException(); // This response type is used by various commands, so don't claim any.
 
     public DataFrame Frame { get; }
 
