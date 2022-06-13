@@ -10,7 +10,7 @@ public abstract class CommandClass<TCommand> : CommandClass
     {
         if (Unsafe.SizeOf<TCommand>() != Unsafe.SizeOf<byte>())
         {
-            throw new ArgumentException("The generic type must be an enum with backing type byte", nameof(TCommand));
+            throw new ArgumentException($"The generic type '{typeof(TCommand).Name}' must be an enum with backing type byte.", nameof(TCommand));
         }
     }
 
