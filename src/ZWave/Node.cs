@@ -132,8 +132,15 @@ public sealed class Node
                 // This request causes unsolicited requests from the controller (kind of like a callback)
                 // with command id ApplicationControllerUpdate
                 var requestNodeInfoRequest = RequestNodeInfoRequest.Create(Id);
-                await _driver.SendCommandAsync(requestNodeInfoRequest, cancellationToken)
+                ResponseStatusResponse response = await _driver.SendCommandAsync<RequestNodeInfoRequest, ResponseStatusResponse>(requestNodeInfoRequest, cancellationToken)
                     .ConfigureAwait(false);
+                if (!response.WasRequestAccepted)
+                {
+                    // TODO: Log
+                    // TODO: Retry
+                    return;
+                }
+
                 await _nodeInfoRecievedEvent.WaitAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 // Initialize command classes
