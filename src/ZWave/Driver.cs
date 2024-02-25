@@ -6,7 +6,7 @@ using ZWave.Serial.Commands;
 
 namespace ZWave;
 
-public sealed class Driver : IAsyncDisposable
+public sealed class Driver : IDriver, IAsyncDisposable
 {
     private record struct AwaitedFrameResponse(CommandId CommandId, TaskCompletionSource<DataFrame> TaskCompletionSource);
 
@@ -290,7 +290,7 @@ public sealed class Driver : IAsyncDisposable
         }
     }
 
-    internal byte GetNextSessionId()
+    public byte GetNextSessionId()
     {
         lock (_callbackLock)
         {
@@ -322,7 +322,7 @@ public sealed class Driver : IAsyncDisposable
     }
 
     // TODO: This name is terrible. Consider doing more type magic for req/res vs callback flow
-    internal async Task<TCallback> SendCommandExpectingCallbackAsync<TRequest, TCallback>(
+    public async Task<TCallback> SendCommandExpectingCallbackAsync<TRequest, TCallback>(
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : struct, IRequestWithCallback<TRequest>
@@ -356,7 +356,7 @@ public sealed class Driver : IAsyncDisposable
         return TCallback.Create(callbackFrame);
     }
 
-    internal async Task<TResponse> SendCommandAsync<TRequest, TResponse>(
+    public async Task<TResponse> SendCommandAsync<TRequest, TResponse>(
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : struct, ICommand<TRequest>
@@ -393,13 +393,13 @@ public sealed class Driver : IAsyncDisposable
         return TResponse.Create(responseFrame);
     }
 
-    internal async Task SendCommandAsync<TRequest>(
+    public async Task SendCommandAsync<TRequest>(
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : struct, ICommand<TRequest>
         => await SendFrameAsync(request.Frame, cancellationToken).ConfigureAwait(false);
 
-    internal async Task SendCommandAsync<TCommand>(
+    public async Task SendCommandAsync<TCommand>(
         TCommand request,
         byte nodeId,
         CancellationToken cancellationToken)

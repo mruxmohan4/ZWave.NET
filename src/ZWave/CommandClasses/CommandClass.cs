@@ -1,11 +1,12 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace ZWave.CommandClasses;
 
 public abstract class CommandClass<TCommand> : CommandClass
     where TCommand : struct, Enum
 {
-    internal CommandClass(CommandClassInfo info, Driver driver, Node node)
+    internal CommandClass(CommandClassInfo info, IDriver driver, Node node)
         : base(info, driver, node)
     {
         if (Unsafe.SizeOf<TCommand>() != Unsafe.SizeOf<byte>())
@@ -44,7 +45,7 @@ public abstract class CommandClass
 
     internal CommandClass(
         CommandClassInfo info,
-        Driver driver,
+        IDriver driver,
         Node node)
     {
         Info = info;
@@ -54,7 +55,7 @@ public abstract class CommandClass
 
     public CommandClassInfo Info { get; private set; }
 
-    protected Driver Driver { get; }
+    protected IDriver Driver { get; }
 
     public Node Node { get; }
 
@@ -120,7 +121,7 @@ public abstract class CommandClass
     }
 
     protected abstract void ProcessCommandCore(CommandClassFrame frame);
-
+    
     internal async Task SendCommandAsync<TRequest>(
         TRequest command,
         CancellationToken cancellationToken)

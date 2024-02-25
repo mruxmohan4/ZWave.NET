@@ -46,7 +46,7 @@ public sealed class BinarySensorCommandClass : CommandClass<BinarySensorCommand>
 {
     private Dictionary<BinarySensorType, bool?>? _sensorValues;
 
-    public BinarySensorCommandClass(CommandClassInfo info, Driver driver, Node node)
+    public BinarySensorCommandClass(CommandClassInfo info, IDriver driver, Node node)
         : base(info, driver, node)
     {
     }

@@ -7,7 +7,7 @@ namespace ZWave;
 
 public sealed class Node
 {
-    private readonly Driver _driver;
+    private readonly IDriver _driver;
 
     private readonly ILogger _logger;
 
@@ -21,7 +21,7 @@ public sealed class Node
 
     private CancellationTokenSource? _interviewCancellationTokenSource;
 
-    internal Node(byte id, Driver driver, ILogger logger)
+    internal Node(byte id, IDriver driver, ILogger logger)
     {
         Id = id;
         _driver = driver ?? throw new ArgumentNullException(nameof(driver));

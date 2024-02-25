@@ -127,7 +127,7 @@ public readonly struct PowerlevelTestResult
 [CommandClass(CommandClassId.Powerlevel)]
 public sealed class PowerlevelCommandClass : CommandClass<PowerlevelCommand>
 {
-    public PowerlevelCommandClass(CommandClassInfo info, Driver driver, Node node)
+    public PowerlevelCommandClass(CommandClassInfo info, IDriver driver, Node node)
         : base(info, driver, node)
     {
     }

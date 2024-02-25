@@ -9,13 +9,13 @@ public sealed class Controller
 {
     private readonly ILogger _logger;
 
-    private readonly Driver _driver;
+    private readonly IDriver _driver;
 
     private readonly Dictionary<byte, Node> _nodes = new Dictionary<byte, Node>();
 
     public Controller(
         ILogger logger,
-        Driver driver)
+        IDriver driver)
     {
         _logger = logger;
         _driver = driver;

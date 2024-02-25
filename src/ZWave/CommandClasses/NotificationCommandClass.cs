@@ -143,7 +143,7 @@ public sealed class NotificationCommandClass : CommandClass<NotificationCommand>
 {
     private Dictionary<NotificationType, SupportedNotificationEvents?>? _supportedNotificationEvents;
 
-    internal NotificationCommandClass(CommandClassInfo info, Driver driver, Node node)
+    internal NotificationCommandClass(CommandClassInfo info, IDriver driver, Node node)
         : base(info, driver, node)
     {
     }
